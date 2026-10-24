@@ -1,0 +1,283 @@
+{#
+  Profile settings panel. Included by dashboard.html and leads.html when the
+  app is served locally (never in the static export). The form is built in JS
+  from GET /api/profile and saved back whole with PUT /api/profile.
+#}
+<div class="settings-scrim" hidden></div>
+<aside class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="settings-head">
+    <h2 id="settings-title" class="settings-title" tabindex="-1">Your profile</h2>
+    <button class="settings-close" type="button" aria-label="Close profile">✕</button>
+  </div>
+  <div class="settings-body" id="settings-body"></div>
+  <div class="settings-foot">
+    <p class="settings-status" id="settings-status" role="status"></p>
+    <div class="settings-actions">
+      <button class="btn settings-upload" type="button">Upload</button>
+      <input class="settings-file" type="file" accept=".json,application/json" hidden>
+      <a class="btn" href="/api/profile/download" download>Download</a>
+      <button class="btn settings-save" type="button">Save</button>
+    </div>
+  </div>
+</aside>
+
+<script>
+(() => {
+  const SECTIONS = [
+    { title: 'About you', fields: [
+      { key: 'name', label: 'Name', type: 'text' },
+      { key: 'headline', label: 'Headline', type: 'text', hint: 'Your role and seniority in one line.' },
+      { key: 'summary', label: 'Summary', type: 'textarea', hint: 'Your background in a paragraph. Claude reads it for every job it scores.' },
+    ]},
+    { title: 'Roles', fields: [
+      { key: 'role_families_open_to', label: 'Open to', type: 'list' },
+      { key: 'role_families_not_interested', label: 'Not interested in', type: 'list' },
+    ]},
+    { title: 'Where', fields: [
+      { key: 'location.countries', label: 'Countries', type: 'countries',
+        hint: 'Only jobs that can be done in these countries are scored and shown. Choose none to consider every location.' },
+      { key: 'location.remote_ok', label: 'Open to remote roles', type: 'toggle' },
+    ]},
+    { title: 'Sectors', fields: [
+      { key: 'sectors.strong_interest', label: 'Strong interest', type: 'list' },
+      { key: 'sectors.open_to', label: 'Open to', type: 'list' },
+      { key: 'sectors.avoid', label: 'Avoid', type: 'list' },
+    ]},
+    { title: 'Signals', hint: 'What makes a role more or less appealing. Claude weighs these when scoring.', fields: [
+      { key: 'green_flags', label: 'Green flags', type: 'list' },
+      { key: 'red_flags', label: 'Red flags', type: 'list' },
+    ]},
+    { title: 'Keyword filter', hint: 'Checked literally against each job’s title and description before Claude sees it.', fields: [
+      { key: 'must_have_keywords', label: 'Must have', type: 'list',
+        hint: 'A job needs at least one. Part-words count: “design” matches “designer”.' },
+      { key: 'must_not_have_keywords', label: 'Must not have', type: 'list',
+        hint: 'Any one of these, as a whole word, drops the job.' },
+    ]},
+  ];
+
+  const trigger = document.querySelector('.settings-open');
+  const panel = document.getElementById('settings-panel');
+  const scrim = document.querySelector('.settings-scrim');
+  const body = document.getElementById('settings-body');
+  const status = document.getElementById('settings-status');
+  const uploadInput = panel.querySelector('.settings-file');
+  let profile = null, regions = {}, dirty = false, saved = false;
+
+  const get = (path) => path.split('.').reduce((o, k) => (o ?? {})[k], profile);
+  function set(path, value) {
+    const keys = path.split('.');
+    const last = keys.pop();
+    const target = keys.reduce((o, k) => (o[k] ??= {}), profile);
+    target[last] = value;
+    dirty = true;
+    say('');
+  }
+  function say(text, isError = false) {
+    status.textContent = text;
+    status.classList.toggle('is-error', isError);
+  }
+  function el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') node.className = v;
+      else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    }
+    node.append(...children);
+    return node;
+  }
+
+  // --- Field renderers -------------------------------------------------------
+
+  function textField(f) {
+    const id = 'pf-' + f.key.replace(/\./g, '-');
+    const input = f.type === 'textarea'
+      ? el('textarea', { id, rows: '6', class: 'settings-input' })
+      : el('input', { id, type: 'text', class: 'settings-input', autocomplete: 'off' });
+    input.value = get(f.key) ?? '';
+    input.addEventListener('input', () => set(f.key, input.value));
+    return [el('label', { class: 'settings-label', for: id }, f.label), input];
+  }
+
+  // Removable chips plus an input; Enter adds. For free-text lists.
+  function listField(f) {
+    const chips = el('div', { class: 'chip-list' });
+    const id = 'pf-' + f.key.replace(/\./g, '-');
+    function draw() {
+      chips.replaceChildren(...(get(f.key) ?? []).map((item, i) =>
+        el('span', { class: 'chip chip-removable' }, item,
+          el('button', { type: 'button', class: 'chip-x', 'aria-label': `Remove ${item}`,
+            onclick: () => {
+              set(f.key, get(f.key).filter((_, j) => j !== i));
+              draw();
+              input.focus();
+            } }, '✕'))));
+    }
+    const input = el('input', { id, type: 'text', class: 'settings-input chip-add',
+      placeholder: 'Add and press Enter', autocomplete: 'off' });
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const value = input.value.trim();
+      const items = get(f.key) ?? [];
+      if (value && !items.some(x => x.toLowerCase() === value.toLowerCase())) {
+        set(f.key, [...items, value]);
+        draw();
+      }
+      input.value = '';
+    });
+    draw();
+    return [el('label', { class: 'settings-label', for: id }, f.label), chips, input];
+  }
+
+  function toggleChip(label, pressed, onToggle) {
+    const chip = el('button', { type: 'button', class: 'chip chip-toggle', 'aria-pressed': String(pressed) }, label);
+    chip.addEventListener('click', () => {
+      const now = chip.getAttribute('aria-pressed') !== 'true';
+      chip.setAttribute('aria-pressed', String(now));
+      onToggle(now);
+    });
+    return chip;
+  }
+
+  // One collapsible group per region; regions with a selection start open.
+  function countriesField(f) {
+    const selected = new Set((get(f.key) ?? []).map(c => c.toUpperCase()));
+    const commit = () => set(f.key, [...selected].sort());
+    const groups = Object.entries(regions).map(([region, countries]) => {
+      const codes = Object.keys(countries);
+      const count = el('span', { class: 'region-count' });
+      const chips = codes.map(code => toggleChip(countries[code], selected.has(code), (on) => {
+        on ? selected.add(code) : selected.delete(code);
+        commit();
+        refresh();
+      }));
+      function refresh() {
+        const n = codes.filter(c => selected.has(c)).length;
+        count.textContent = n ? `${n} of ${codes.length}` : '';
+      }
+      function setAll(on) {
+        codes.forEach(c => on ? selected.add(c) : selected.delete(c));
+        chips.forEach(ch => ch.setAttribute('aria-pressed', String(on)));
+        commit();
+        refresh();
+      }
+      refresh();
+      const details = el('details', { class: 'region' },
+        el('summary', {}, el('span', { class: 'region-name' }, region), count),
+        el('div', { class: 'region-bulk' },
+          el('button', { type: 'button', class: 'text-btn', onclick: () => setAll(true) }, 'Select all'),
+          el('button', { type: 'button', class: 'text-btn', onclick: () => setAll(false) }, 'Clear')),
+        el('div', { class: 'chip-list' }, ...chips));
+      details.open = codes.some(c => selected.has(c));
+      return details;
+    });
+    return [el('span', { class: 'settings-label' }, f.label), ...groups];
+  }
+
+  function toggleField(f) {
+    return [el('div', { class: 'chip-list' },
+      toggleChip(f.label, get(f.key) !== false, (on) => set(f.key, on)))];
+  }
+
+  const RENDER = { text: textField, textarea: textField, list: listField, countries: countriesField, toggle: toggleField };
+
+  function render() {
+    body.replaceChildren(...SECTIONS.map(s => el('section', { class: 'settings-section' },
+      el('h3', { class: 'settings-heading' }, s.title),
+      ...(s.hint ? [el('p', { class: 'settings-hint' }, s.hint)] : []),
+      ...s.fields.map(f => el('div', { class: 'settings-field' },
+        ...RENDER[f.type](f),
+        ...(f.hint ? [el('p', { class: 'settings-hint' }, f.hint)] : []))))));
+  }
+
+  // --- Open / close ----------------------------------------------------------
+
+  async function open() {
+    try {
+      const res = await fetch('/api/profile');
+      const data = await res.json();
+      profile = data.profile;
+      regions = data.regions;
+    } catch (err) {
+      console.error('Profile load failed:', err);
+      return;
+    }
+    dirty = false;
+    render();
+    say('');
+    panel.hidden = scrim.hidden = false;
+    document.body.classList.add('settings-open-body');
+    requestAnimationFrame(() => panel.classList.add('is-open'));
+    panel.querySelector('.settings-title').focus();
+  }
+
+  function close() {
+    if (dirty && !confirm('Discard unsaved changes to your profile?')) return;
+    panel.classList.remove('is-open');
+    document.body.classList.remove('settings-open-body');
+    setTimeout(() => { panel.hidden = scrim.hidden = true; }, 250);
+    trigger.focus();
+    // Countries filter the list server-side, so show the result of a save
+    if (saved) location.reload();
+  }
+
+  trigger.addEventListener('click', open);
+  scrim.addEventListener('click', close);
+  panel.querySelector('.settings-close').addEventListener('click', close);
+
+  // Keep keys inside the panel: the page behind uses arrows and Escape too.
+  panel.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key !== 'Tab') return;
+    const focusable = [...panel.querySelectorAll('button, input:not([hidden]), textarea, summary, a[href]')]
+      .filter(n => n.offsetParent !== null);
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+    else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+  });
+
+  // --- Save / upload ---------------------------------------------------------
+
+  panel.querySelector('.settings-save').addEventListener('click', async () => {
+    say('Saving…');
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile),
+      });
+      const data = await res.json();
+      if (!data.ok) { say(data.error, true); return; }
+      dirty = false;
+      saved = true;
+      say('Saved. Countries apply now; everything else from the next fetch.');
+    } catch (err) {
+      say('Save failed — is the server still running?', true);
+    }
+  });
+
+  // Upload fills the form for review; nothing is written until Save.
+  panel.querySelector('.settings-upload').addEventListener('click', () => uploadInput.click());
+  uploadInput.addEventListener('change', async () => {
+    const file = uploadInput.files[0];
+    uploadInput.value = '';
+    if (!file) return;
+    let parsed;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      parsed = null;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      say(`${file.name} isn’t a profile file.`, true);
+      return;
+    }
+    profile = parsed;
+    dirty = true;
+    render();
+    say(`Loaded ${file.name}. Review it, then Save.`);
+  });
+})();
+</script>

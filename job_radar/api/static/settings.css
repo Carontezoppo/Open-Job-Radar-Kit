@@ -1,0 +1,212 @@
+/* ------- Profile settings panel (local dashboard only) ------- */
+
+.settings-open {
+  margin-left: auto;
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+}
+.settings-open:hover { color: var(--ink-soft); }
+
+body.settings-open-body { overflow: hidden; }
+
+.settings-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 24, 21, 0.18);
+  z-index: 200;
+}
+
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(600px, 100vw);
+  height: 100%;
+  background: var(--paper);
+  border-left: 1px solid var(--rule);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.06);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.settings-panel.is-open { transform: translateX(0); }
+
+.settings-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 2rem 2rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+.settings-title {
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  outline: none;
+}
+.settings-close {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.4rem;
+}
+.settings-close:hover { color: var(--ink); }
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 2rem 2rem;
+}
+
+.settings-section {
+  padding: 1.75rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.settings-section:last-child { border-bottom: none; }
+
+.settings-heading {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.settings-field { margin-top: 1.1rem; }
+
+.settings-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  margin-bottom: 0.5rem;
+}
+
+.settings-hint {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  line-height: 1.5;
+  margin-top: 0.4rem;
+}
+.settings-heading + .settings-hint { margin-top: 0; }
+
+/* Base styles come from the shared underlined input in base.css */
+.settings-input { line-height: 1.5; }
+textarea.settings-input {
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.6rem 0.7rem;
+  resize: vertical;
+}
+textarea.settings-input:focus { border-color: var(--ink-soft); }
+.chip-add { margin-top: 0.4rem; }
+
+/* ------- Chips (shell and on/off toggle live in base.css) ------- */
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* Free-text items: always outlined, removed with the ✕ */
+.chip-removable { padding-right: 0.3rem; }
+.chip-x {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 0.7rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 100px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.chip-x:hover { color: var(--ink); background: var(--paper-warm); }
+
+.chip-x:focus-visible,
+.text-btn:focus-visible,
+.region summary:focus-visible {
+  outline: 2px solid var(--pick);
+  outline-offset: 2px;
+}
+
+/* ------- Regions ------- */
+.region { border-top: 1px solid var(--rule); }
+.region:last-of-type { border-bottom: 1px solid var(--rule); }
+
+.region summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.88rem;
+}
+.region summary::-webkit-details-marker { display: none; }
+.region summary::before {
+  content: "+";
+  width: 0.8rem;
+  color: var(--ink-faint);
+}
+.region[open] summary::before { content: "−"; }
+
+.region-count {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+
+.region-bulk {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+.text-btn {
+  background: none;
+  border: none;
+  padding: 0.2rem 0;
+  font-family: inherit;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.text-btn:hover { color: var(--ink); }
+.region .chip-list { padding-bottom: 1rem; }
+
+/* ------- Footer ------- */
+.settings-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 2rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+}
+.settings-status {
+  font-size: 0.78rem;
+  color: var(--good);
+  flex: 1 1 12rem;
+}
+.settings-status.is-error { color: var(--bad); }
+.settings-actions { display: flex; gap: 0.5rem; }
+
+@media (max-width: 540px) {
+  .settings-head { padding: 1.5rem 1.25rem 1rem; }
+  .settings-body { padding: 0 1.25rem 1.5rem; }
+  .settings-foot { padding: 0.9rem 1.25rem; }
+}

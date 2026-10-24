@@ -1,0 +1,156 @@
+/* Leads page. Shared components (cards, detail header, pills, buttons,
+   inputs) live in base.css; this file holds only what is specific to leads. */
+
+/* ------- Toolbar: "+ Add lead" ------- */
+.btn-add {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 100px; /* rounded like the chips and search beside it */
+  transition: all 0.15s;
+}
+.btn-add:hover { border-color: var(--ink); color: var(--ink); }
+
+/* ------- Lead list card ------- */
+.lead-card { padding: 1.2rem 1.5rem 1.2rem 1.25rem; }
+.lead-card.is-dismissed { opacity: 0.4; }
+.lead-card.is-promoted { border-left-color: var(--good); }
+
+/* Room for the pill in the top-right corner (wider: "Watching", "→ Active") */
+.lead-card .card-content { padding-right: 3rem; }
+
+/* ------- Detail pane ------- */
+.blurb {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.6rem;
+  max-width: 60ch;
+  line-height: 1.6;
+}
+
+.sectors {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.6rem;
+}
+.sector-tag {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink-soft);
+  text-transform: lowercase;
+}
+
+/* ------- Button variants ------- */
+.btn.active.watch    { background: var(--ink-soft); color: var(--paper); border-color: var(--ink-soft); }
+.btn.active.dismiss  { background: var(--weak); color: var(--paper); border-color: var(--weak); }
+.btn.active.promoted { background: var(--good); color: var(--paper); border-color: var(--good); }
+
+/* ------- Website field ------- */
+.website-section {
+  margin-bottom: 1.6rem;
+}
+.website-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+/* URLs read better in mono */
+.website-input {
+  flex: 1;
+  min-width: 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+}
+.btn-save-url { flex-shrink: 0; }
+.website-link {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  color: var(--pick);
+  text-decoration: none;
+  word-break: break-all;
+  letter-spacing: 0.01em;
+}
+.website-link:hover { text-decoration: underline; }
+.website-link[hidden] { display: none; }
+/* Read-only link sections (Careers) sit directly under their label */
+.website-label + .website-link { margin-top: 0; }
+
+/* ------- Manual add form ------- */
+.add-form {
+  padding: 0.5rem 0 1rem;
+}
+.add-form h3 {
+  font-family: "Fraunces", serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.3rem;
+  margin-bottom: 1.2rem;
+  color: var(--ink);
+}
+.form-row {
+  margin-bottom: 0.8rem;
+}
+.form-select { cursor: pointer; }
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+}
+.btn-cancel { color: var(--ink-faint); border-color: var(--rule); }
+
+/* ------- Mobile ------- */
+@media (max-width: 540px) {
+  .lead-card { padding: 1rem 1.25rem; }
+}
+
+/* ------- Map view ------- */
+.lead-map-wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  border-bottom: 1px solid var(--rule);
+}
+#lead-map {
+  height: 52vh;
+  min-height: 320px;
+  background: var(--paper);
+}
+.map-note {
+  padding: 0.6rem 1.5rem 0.6rem 1.25rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-faint);
+}
+
+/* Leaflet's own chrome, brought into the page's register */
+.lead-map-wrap .leaflet-container { font-family: "IBM Plex Mono", monospace; }
+.lead-map-wrap .leaflet-bar { border: 1px solid var(--rule); border-radius: 100px; box-shadow: none; overflow: hidden; }
+.lead-map-wrap .leaflet-bar a { color: var(--ink-soft); background: var(--paper); border-bottom-color: var(--rule); }
+.lead-map-wrap .leaflet-bar a:hover { color: var(--ink); background: var(--hover); }
+.lead-map-wrap .leaflet-tooltip {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  box-shadow: none;
+}
+.lead-map-wrap .leaflet-control-attribution { font-size: 0.55rem; background: rgba(253, 254, 255, 0.8); }
+
+/* ------- Open roles in a lead's detail ------- */
+.role-link { display: block; }
+.role-score { color: var(--ink-faint); margin-left: 0.3rem; }

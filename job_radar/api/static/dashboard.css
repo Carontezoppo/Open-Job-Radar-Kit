@@ -1,0 +1,119 @@
+/* Roles page. Shared components (cards, detail header, pills, buttons,
+   inputs) live in base.css; this file holds only what is specific to jobs. */
+
+.card-date.is-stale { color: var(--weak); }
+
+/* ------- List card: score column + content ------- */
+.list-card {
+  padding: 1.4rem 1.5rem 1.4rem 1.25rem;
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  gap: 1.1rem;
+  align-items: start;
+}
+
+.list-card .score-block { text-align: right; }
+
+.list-card .score {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-variation-settings: "opsz" 144;
+  font-weight: 300;
+  font-size: 2.4rem;
+  line-height: 0.9;
+  color: var(--weak);
+  font-feature-settings: "lnum";
+  letter-spacing: -0.04em;
+  display: block;
+}
+.list-card .score.tier-strong { color: var(--pick); font-weight: 400; }
+.list-card .score.tier-mid { color: var(--ink); }
+
+.list-card .score-label {
+  display: block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.58rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.3rem;
+  color: var(--ink-faint);
+}
+
+/* Room for the pill in the top-right corner */
+.list-card .card-content { padding-right: 2rem; }
+
+/* ------- Detail pane ------- */
+.detail-reasoning {
+  font-size: 1rem;
+  color: var(--ink);
+  margin-bottom: 1.6rem;
+  max-width: 60ch;
+  line-height: 1.8;
+}
+
+/* ------- Flags ------- */
+/* Green and red flags in separate groups, so the two read apart at a glance */
+.flag-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+.flags {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.flag {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.flag.green { color: var(--good); }
+.flag.red { color: var(--bad); }
+
+/* ------- Note fields (stacked, with coloured placeholders) ------- */
+.note-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.note-field.positive::placeholder { color: var(--good); opacity: 0.7; }
+.note-field.negative::placeholder { color: var(--bad); opacity: 0.7; }
+
+/* ------- Button variants ------- */
+.btn.active.up { background: var(--good); color: var(--paper); border-color: var(--good); }
+.btn.active.down { background: var(--bad); color: var(--paper); border-color: var(--bad); }
+.btn.active.applied { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* ------- Fetch controls (local copies with LOCAL_FETCH=1) ------- */
+.fetch-controls {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+.fetch-controls ~ .settings-open { margin-left: 0.4rem; }
+.fetch-status { text-transform: none; letter-spacing: 0.02em; font-size: 0.78rem; color: var(--ink-soft); }
+.fetch-status.is-done { color: var(--good); }
+.fetch-status.is-error { color: var(--bad); }
+.fetch-status .text-btn { margin-left: 0.3rem; color: var(--ink); border-bottom: 1px solid var(--ink); padding: 0; }
+.fetch-rescore { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+.fetch-rescore input { accent-color: var(--ink); width: 0.9rem; height: 0.9rem; cursor: pointer; }
+.fetch-btn:disabled { opacity: 0.5; cursor: default; }
+.fetch-btn:disabled:hover { border-color: var(--rule); color: var(--ink-soft); }
+
+/* ------- Mobile ------- */
+@media (max-width: 540px) {
+  .list-card {
+    grid-template-columns: 2.8rem 1fr;
+    gap: 0.9rem;
+    padding: 1.2rem 1.25rem;
+  }
+  .list-card .score { font-size: 1.9rem; }
+}

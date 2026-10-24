@@ -1,0 +1,59 @@
+{
+  "_comment": "Template profile. Run `python run.py serve`, open http://localhost:8000 and use Profile (top right) to edit it; saving writes profile.json. Every field is shown to Claude when it scores a job. The two keyword lists also filter jobs mechanically before Claude sees them.",
+
+  "name": "",
+  "headline": "Senior UX designer",
+  "summary": "A paragraph about your background: years of experience, the kinds of products and organisations you've worked in, what you're known for, and the kind of work you want next.",
+
+  "role_families_open_to": [
+    "Senior UX designer",
+    "Senior product designer",
+    "Lead designer",
+    "Principal designer"
+  ],
+  "role_families_not_interested": [
+    "Junior or mid-level roles",
+    "Pure visual / brand designer roles",
+    "Engineering roles",
+    "Marketing, sales, or other non-product roles"
+  ],
+
+  "location": {
+    "countries": [
+      "GB", "IE", "NL", "DE", "FR", "BE", "LU", "AT", "CH", "IT", "ES", "PT",
+      "DK", "SE", "NO", "FI", "IS", "EE", "LV", "LT", "PL", "CZ"
+    ],
+    "remote_ok": true
+  },
+
+  "sectors": {
+    "strong_interest": ["health-tech", "fintech"],
+    "open_to": ["climate", "education"],
+    "avoid": ["gambling", "adtech"]
+  },
+
+  "green_flags": [
+    "strategic remit",
+    "user research is part of the role",
+    "0 to 1 / new product"
+  ],
+  "red_flags": [
+    "agency-side delivery role",
+    "junior despite a senior title"
+  ],
+
+  "must_have_keywords": [
+    "design",
+    "UX",
+    "user experience"
+  ],
+  "must_not_have_keywords": [
+    "junior",
+    "intern",
+    "graduate scheme",
+    "apprentice",
+    "software engineer",
+    "marketing",
+    "sales"
+  ]
+}

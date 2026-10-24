@@ -1,0 +1,94 @@
+/* Sources page: an audit of every source's latest fetch (local only).
+   Shared components (masthead, nav, pills) live in base.css. */
+
+.sources {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 1.5rem 2rem 0;
+}
+
+/* ------- Table ------- */
+.source-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.source-table th {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-faint);
+  text-align: left;
+  padding: 0 1rem 0.7rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.source-table td {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  padding: 0.9rem 1rem 0.9rem 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+.source-table .num { text-align: right; padding-right: 2rem; }
+
+.source-name {
+  display: block;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.source-type {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-faint);
+}
+
+/* ------- Status ------- */
+.pill-ok { color: var(--good); }
+.pill-empty { color: var(--weak); }
+.pill-error { color: var(--bad); }
+.source-error {
+  display: block;
+  margin-top: 0.4rem;
+  max-width: 40ch;
+  color: var(--bad);
+  overflow-wrap: anywhere;
+}
+.source-table .is-late { color: var(--bad); }
+.source-table .is-stale { color: var(--weak); }
+
+.source-note {
+  max-width: 70ch;
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  line-height: 1.6;
+}
+.source-note strong { color: var(--ink-soft); font-weight: 500; }
+
+/* ------- Mobile: each source becomes a stacked block, labels inline ------- */
+@media (max-width: 540px) {
+  .sources { padding: 1rem 1.25rem 0; }
+  .source-table thead { display: none; }
+  .source-table tr {
+    display: block;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .source-table td { display: block; padding: 0; border: none; margin-top: 0.35rem; }
+  .source-table td:first-child { margin-top: 0; }
+  .source-table td[data-label]::before {
+    content: attr(data-label) " · ";
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    font-size: 0.6rem;
+    letter-spacing: 0.09em;
+  }
+  .source-table .num { text-align: left; padding-right: 0; }
+}

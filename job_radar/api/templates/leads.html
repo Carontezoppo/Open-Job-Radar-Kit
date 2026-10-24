@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Radar — Leads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FAF7F1" />
+<link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/leads.css">
+{# Leaflet draws the Map view; local only, like the rest of Leads #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+{% if settings %}<link rel="stylesheet" href="/static/settings.css">{% endif %}
+</head>
+<body>
+
+<header>
+  <div class="masthead">
+    <h1 class="masthead-title">Job <span style="color: var(--pick-soft); font-weight: 400;">|</span> <em>Radar</em></h1>
+    <div class="masthead-meta">
+      <strong>{{ total }}</strong> leads tracked<br>
+      {% if new_count %}<span style="color:var(--good)">{{ new_count }} new</span>{% endif %}
+    </div>
+  </div>
+  {# Three columns — tabs, search, Profile — so the search sits at the exact centre #}
+  <div class="dateline">
+    <div class="nav-group">
+      <a href="/" class="nav-tab">Roles</a>
+      <span>·</span>
+      <a href="/leads" class="nav-tab active">Leads</a>
+      <span>·</span>
+      <a href="/sources" class="nav-tab">Sources</a>
+      {% if last_detect_at %}
+        <span class="nav-divider last-scan">|</span>
+        <span class="last-scan">Last scan {{ last_detect_at[:10] }}</span>
+      {% endif %}
+    </div>
+    {# Search sits above the filters, as on Roles: searching comes before browsing #}
+    {% if leads %}
+    <div class="list-search">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M10.6 10.6 14.5 14.5" stroke-linecap="round"/></svg>
+      <input class="form-input" id="list-search" type="search" placeholder="Search company, sector or city" aria-label="Search company, sector or city" autocomplete="off">
+    </div>
+    {% endif %}
+    <div class="nav-group nav-group-end">
+      {% if settings %}<button class="nav-tab settings-open" type="button" aria-haspopup="dialog" aria-controls="settings-panel">Profile</button>{% endif %}
+    </div>
+  </div>
+</header>
+
+{# Above the list/detail split, so the controls get the full width #}
+<div class="list-toolbar">
+  <div class="filter-chips">
+    <button class="chip chip-toggle" data-filter="all"      aria-pressed="true"  type="button">All</button>
+    <button class="chip chip-toggle" data-filter="new"      aria-pressed="false" type="button">New</button>
+    <button class="chip chip-toggle" data-filter="watching" aria-pressed="false" type="button">Watching</button>
+    <button class="chip chip-toggle" data-filter="promoted" aria-pressed="false" type="button">Active</button>
+    {# Set by clicking a bubble on the map; clicking the chip clears it #}
+    <button class="chip chip-toggle place-chip" aria-pressed="true" type="button" hidden></button>
+  </div>
+  {% if places %}
+  {# A view control, not a filter, so text tabs like Sort rather than chips #}
+  <div class="view-tabs">
+    <span class="tabs-label">View:</span>
+    <button class="view-btn active" data-view="list" type="button">List</button>
+    <button class="view-btn"        data-view="map"  type="button">Map</button>
+  </div>
+  {% endif %}
+  <button class="btn-add" id="btn-add-lead" type="button">+ Add lead</button>
+</div>
+
+{# Map view: bubbles per place above the usual list, which a bubble filters #}
+<div class="lead-map-wrap" hidden>
+  <div id="lead-map"></div>
+  <p class="map-note"></p>
+</div>
+
+<div class="layout">
+  <aside class="list-pane">
+    {% if leads %}<p class="list-empty" hidden>No leads match.</p>
+    <p class="search-more" hidden></p>{% endif %}
+
+    {% if leads %}
+      {% for l in leads %}
+        <button class="lead-card {% if l.status == 'dismissed' %}is-dismissed{% elif l.status == 'promoted' %}is-promoted{% endif %}"
+                data-lead-id="{{ l.id }}"
+                data-selected="false"
+                data-status="{{ l.status }}"
+                data-place="{{ l.place }}"
+                data-search="{{ [l.company_name, l.sector_guess, l.location, l.source_detail or l.source]|select|join(' ')|lower }}"
+                type="button">
+          {% if l.status == 'new' %}<span class="pill pill-new">New</span>
+          {% elif l.status == 'watching' %}<span class="pill pill-watch">Watching</span>
+          {% elif l.status == 'promoted' %}<span class="pill pill-promoted">→ Active</span>
+          {% endif %}
+          <span class="card-content">
+            <span class="card-name">{{ l.company_name }}</span>
+            {% if l.funding_stage and l.funding_stage != 'unknown' %}
+              <span class="card-stage">{{ l.funding_stage }}</span>
+            {% endif %}
+            <span class="card-meta">
+              <span class="vc-label">{{ l.source_detail or l.source }}</span>
+              {# City only on the card; the detail view shows "City, Country" #}
+              {% if l.location and l.location != 'unknown' %}<span class="sep">·</span><span>{{ l.location.split(',')[0] }}</span>{% endif %}
+            </span>
+          </span>
+        </button>
+      {% endfor %}
+    {% else %}
+      <div class="empty" style="grid-column:auto; padding:4rem 1.5rem;">
+        <h2>No leads yet.</h2>
+        <p>Run <code>python run.py detect</code> to scan VC portfolio pages,<br>or add a lead manually with the button above.</p>
+      </div>
+    {% endif %}
+  </aside>
+
+  <section class="detail-pane" id="detail-pane" aria-live="polite">
+    <button class="detail-close" type="button">← Back</button>
+
+    <!-- Manual add form (hidden by default, shown in place of a detail) -->
+    <div class="detail" id="add-lead-form">
+      <div class="add-form">
+        <h3>Add lead manually</h3>
+        <div class="form-row">
+          <label class="form-label" for="f-company">Company name *</label>
+          <input class="form-input" id="f-company" type="text" placeholder="e.g. Stealth AI" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="f-url">URL</label>
+          <input class="form-input" id="f-url" type="url" placeholder="https://...">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="f-source-detail">Source</label>
+          <input class="form-input" id="f-source-detail" type="text" placeholder="e.g. Found on LinkedIn">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="f-stage">Stage</label>
+          <select class="form-select" id="f-stage">
+            <option value="unknown">Unknown</option>
+            <option value="pre-seed">Pre-seed</option>
+            <option value="seed">Seed</option>
+            <option value="series a">Series A</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="f-vc">VC / Investor</label>
+          <input class="form-input" id="f-vc" type="text" placeholder="e.g. Seedcamp">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="f-sector">Sector</label>
+          <input class="form-input" id="f-sector" type="text" placeholder="e.g. fintech, AI/ML">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="f-location">Location</label>
+          <input class="form-input" id="f-location" type="text" placeholder="e.g. London">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="f-notes">Notes</label>
+          <input class="form-input" id="f-notes" type="text" placeholder="Any context...">
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-submit" id="btn-submit-lead" type="button">Save lead</button>
+          <button class="btn btn-cancel" id="btn-cancel-lead" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    {% for l in leads %}
+      <article class="detail" data-lead-id="{{ l.id }}">
+        <div class="detail-meta">
+          <span class="vc-label">{{ l.source_detail or l.source }}</span>
+          {% if l.location and l.location != 'unknown' %}<span class="sep">·</span><span>{{ l.location }}</span>{% endif %}
+          {% if l.funding_stage and l.funding_stage != 'unknown' %}<span class="sep">·</span><span>{{ l.funding_stage }}</span>{% endif %}
+        </div>
+        <h2 class="detail-name">{{ l.company_name }}</h2>
+        <div class="detail-location">
+          {{ l.location if l.location and l.location != 'unknown' else 'Location unknown' }}
+        </div>
+
+        {% if l.notes %}
+          <p class="blurb">{{ l.notes }}</p>
+        {% endif %}
+
+        {% if l.sector_guess %}
+          <div class="sectors">
+            {% for s in l.sector_guess.split(',') %}
+              <span class="sector-tag">{{ s.strip() }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="website-section">
+          <div class="website-label">Website</div>
+          <div class="website-row">
+            <input class="website-input"
+                   type="url"
+                   placeholder="https://…"
+                   value="{{ l.url or '' }}"
+                   data-lead-id="{{ l.id }}"
+                   autocomplete="off"
+                   spellcheck="false">
+            <button class="btn btn-save-url" type="button">Save</button>
+          </div>
+          <a class="website-link"
+             href="{{ l.url or '#' }}"
+             target="_blank"
+             rel="noopener"
+             {% if not l.url %}hidden{% endif %}>↗ {{ l.url or '' }}</a>
+        </div>
+
+        {% if l.careers_url %}
+          <div class="website-section">
+            <div class="website-label">Careers</div>
+            <a class="website-link" href="{{ l.careers_url }}" target="_blank" rel="noopener">↗ {{ l.careers_url }}</a>
+          </div>
+        {% endif %}
+
+        {% set open_roles = roles_by_company.get(l.company_name|lower|trim) %}
+        {% if open_roles %}
+          <div class="website-section">
+            <div class="website-label">Open roles</div>
+            {% for r in open_roles %}
+              <a class="website-link role-link" href="/#job={{ r.id|urlencode }}">→ {{ r.title }} <span class="role-score">{{ r.score }}</span></a>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="actions">
+          <button class="btn watch {% if l.status == 'watching' %}active{% endif %}"
+                  data-action="watching" type="button">
+            {% if l.status == 'watching' %}✓ Watching{% else %}Watch{% endif %}
+          </button>
+          <button class="btn dismiss {% if l.status == 'dismissed' %}active{% endif %}"
+                  data-action="dismissed" type="button">
+            {% if l.status == 'dismissed' %}✕ Dismissed{% else %}Dismiss{% endif %}
+          </button>
+          <div class="note-wrap">
+            <input class="note-field" type="text"
+                   placeholder="Notes…"
+                   value="{{ l.notes or '' }}"
+                   data-lead-id="{{ l.id }}"
+                   autocomplete="off">
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+</div>
+
+{% if not leads %}
+<div class="empty">
+  <h2>No leads yet.</h2>
+  <p>Run <code>python run.py detect</code> to scan VC portfolio pages for new companies,<br>
+     or use the <strong>+ Add lead</strong> button to add one manually.</p>
+</div>
+{% endif %}
+
+<footer>
+  Personal aggregator · Job Radar
+</footer>
+
+<script>
+(() => {
+  const cards = Array.from(document.querySelectorAll('.lead-card'));
+  const details = document.querySelectorAll('.detail[data-lead-id]');
+  const addForm = document.getElementById('add-lead-form');
+  const detailPane = document.getElementById('detail-pane');
+  const detailClose = document.querySelector('.detail-close');
+  const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
+
+  function hideAll() {
+    details.forEach(d => d.classList.remove('is-active'));
+    addForm.classList.remove('is-active');
+    cards.forEach(c => c.dataset.selected = 'false');
+  }
+
+  function selectLead(leadId, { openMobile = false } = {}) {
+    hideAll();
+    cards.forEach(c => c.dataset.selected = String(c.dataset.leadId === leadId));
+    const detail = document.querySelector(`.detail[data-lead-id="${leadId}"]`);
+    if (detail) detail.classList.add('is-active');
+    if (isMobile() && openMobile) {
+      detailPane.classList.add('is-open');
+      document.body.classList.add('modal-open');
+      detailPane.scrollTop = 0;
+    }
+  }
+
+  function closeMobile() {
+    detailPane.classList.remove('is-open');
+    document.body.classList.remove('modal-open');
+  }
+
+  cards.forEach(card => {
+    card.addEventListener('click', () => selectLead(card.dataset.leadId, { openMobile: true }));
+  });
+
+  if (detailClose) detailClose.addEventListener('click', closeMobile);
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeMobile(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const visible = cards.filter(c => c.style.display !== 'none');
+    const idx = visible.findIndex(c => c.dataset.selected === 'true');
+    const next = e.key === 'ArrowDown'
+      ? Math.min(visible.length - 1, idx + 1)
+      : Math.max(0, idx - 1);
+    if (next !== idx && visible[next]) {
+      selectLead(visible[next].dataset.leadId);
+      visible[next].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      e.preventDefault();
+    }
+  });
+
+  // Auto-select first lead
+  if (cards.length > 0) selectLead(cards[0].dataset.leadId);
+
+  // Filter chips and search: a card shows only if it passes both
+  const searchInput = document.getElementById('list-search');
+  const listEmpty = document.querySelector('.list-empty');
+  const searchMore = document.querySelector('.search-more');
+  let activeFilter = 'all';
+
+  function applyFilters() {
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    // Chips and search decide which leads count; the map's bubbles are built
+    // from those, and a selected bubble narrows the list to its place
+    const counted = cards.filter(card =>
+      (activeFilter === 'all' || card.dataset.status === activeFilter) && card.dataset.search.includes(query));
+    const inPlace = card => !activePlace || card.dataset.place === activePlace;
+    cards.forEach(card => {
+      card.style.display = counted.includes(card) && inPlace(card) ? '' : 'none';
+    });
+    updateMap(counted);
+    const visible = cards.filter(c => c.style.display !== 'none');
+    if (listEmpty) listEmpty.hidden = visible.length > 0;
+    // As on Roles: say how many more the search matched outside the active chip
+    const elsewhere = query ? cards.filter(c =>
+      c.style.display === 'none' && c.dataset.search.includes(query) && inPlace(c)).length : 0;
+    if (searchMore) {
+      searchMore.hidden = elsewhere === 0;
+      searchMore.replaceChildren('Also matching your search: ');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = `${elsewhere} in All`;
+      btn.addEventListener('click', () => document.querySelector('.filter-chips [data-filter="all"]').click());
+      searchMore.append(btn);
+    }
+    // Keep the current selection if it survived; otherwise move to the first visible card.
+    // With nothing visible, clear the detail too, or it reads as the result
+    if (!visible.length) hideAll();
+    else if (!visible.some(c => c.dataset.selected === 'true')) selectLead(visible[0].dataset.leadId);
+  }
+
+  const filterChips = document.querySelectorAll('.filter-chips [data-filter]');
+  filterChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      filterChips.forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+      activeFilter = chip.dataset.filter;
+      applyFilters();
+    });
+  });
+  if (searchInput) searchInput.addEventListener('input', applyFilters);
+
+  // Map view: one bubble per place, sized by how many leads it holds. Places
+  // known only to country level are hollow and dashed, so they don't pass for
+  // a city. Clicking a bubble filters the list below; the place chip clears it.
+  const places = {{ places|tojson }};
+  const mapWrap = document.querySelector('.lead-map-wrap');
+  const mapNote = document.querySelector('.map-note');
+  const placeChip = document.querySelector('.place-chip');
+  let activePlace = '';
+  let map = null, bubbles = null;
+
+  function setPlace(key) {
+    activePlace = key;
+    placeChip.hidden = !key;
+    placeChip.textContent = key ? `${places[key].label} ✕` : '';
+    applyFilters();
+  }
+  placeChip.addEventListener('click', () => setPlace(''));
+
+  function updateMap(counted) {
+    if (!map) return;
+    const pick = getComputedStyle(document.documentElement).getPropertyValue('--pick').trim();
+    const counts = {};
+    let unplaced = 0;
+    counted.forEach(c => { if (c.dataset.place) counts[c.dataset.place] = (counts[c.dataset.place] || 0) + 1; else unplaced++; });
+    bubbles.clearLayers();
+    // Largest first, so smaller bubbles sit on top and stay clickable
+    Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([key, n]) => {
+      const p = places[key];
+      const isCountry = p.kind === 'country';
+      const selected = key === activePlace;
+      const bubble = L.circleMarker([p.lat, p.lon], {
+        radius: 4 + Math.sqrt(n) * 2.2,
+        color: pick,
+        weight: selected ? 2.5 : 1.5,
+        dashArray: isCountry ? '3 3' : null,
+        fillColor: pick,
+        fillOpacity: selected ? 0.55 : (isCountry ? 0 : 0.2),
+      });
+      bubble.bindTooltip(`${p.label}${isCountry ? ' · city unknown' : ''} · ${n}`, { direction: 'top' });
+      bubble.on('click', () => setPlace(selected ? '' : key));
+      bubbles.addLayer(bubble);
+    });
+    const placed = counted.length - unplaced;
+    mapNote.textContent = `${placed} leads in ${Object.keys(counts).length} places`
+      + (unplaced ? ` · ${unplaced} without a location` : '');
+  }
+
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b === btn));
+      const showMap = btn.dataset.view === 'map';
+      mapWrap.hidden = !showMap;
+      if (showMap && !map) {
+        // Created on first use: Leaflet can't measure a hidden container
+        map = L.map('lead-map', { scrollWheelZoom: false }).setView([50, 10], 4);
+        // Esri's Light Gray Canvas: a muted base made for data on top, and free
+        // without a key (CARTO's equivalent now needs one)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
+          maxZoom: 12,
+        }).addTo(map);
+        bubbles = L.layerGroup().addTo(map);
+      }
+      if (showMap) {
+        map.invalidateSize();
+        applyFilters();
+      } else {
+        setPlace('');  // the place filter belongs to the map
+      }
+    });
+  });
+
+  // Manual add form
+  const btnAdd = document.getElementById('btn-add-lead');
+  const btnSubmit = document.getElementById('btn-submit-lead');
+  const btnCancel = document.getElementById('btn-cancel-lead');
+
+  if (btnAdd) {
+    btnAdd.addEventListener('click', () => {
+      hideAll();
+      addForm.classList.add('is-active');
+      if (isMobile()) {
+        detailPane.classList.add('is-open');
+        document.body.classList.add('modal-open');
+        detailPane.scrollTop = 0;
+      }
+      document.getElementById('f-company')?.focus();
+    });
+  }
+
+  if (btnCancel) {
+    btnCancel.addEventListener('click', () => {
+      addForm.classList.remove('is-active');
+      if (cards.length > 0) selectLead(cards[0].dataset.leadId);
+    });
+  }
+
+  if (btnSubmit) {
+    btnSubmit.addEventListener('click', async () => {
+      const name = document.getElementById('f-company')?.value.trim();
+      if (!name) { document.getElementById('f-company')?.focus(); return; }
+      const payload = {
+        company_name: name,
+        url: document.getElementById('f-url')?.value.trim() || '',
+        source_detail: document.getElementById('f-source-detail')?.value.trim() || '',
+        funding_stage: document.getElementById('f-stage')?.value || 'unknown',
+        vc: document.getElementById('f-vc')?.value.trim() || '',
+        sector_guess: document.getElementById('f-sector')?.value.trim() || '',
+        location: document.getElementById('f-location')?.value.trim() || 'unknown',
+        notes: document.getElementById('f-notes')?.value.trim() || '',
+      };
+      try {
+        const res = await fetch('/api/lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if ((await res.json()).ok) window.location.reload();
+      } catch (err) {
+        console.error('Add lead failed:', err);
+      }
+    });
+  }
+
+  // Watch / dismiss actions
+  document.querySelectorAll('.actions .watch, .actions .dismiss').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const article = btn.closest('.detail');
+      const leadId = article.dataset.leadId;
+      const action = btn.dataset.action;
+      const isActive = btn.classList.contains('active');
+      const newStatus = isActive ? 'new' : action;
+
+      try {
+        await fetch('/api/lead-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_id: leadId, status: newStatus }),
+        });
+        // Update the list card status badge and card class
+        const card = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+        if (card) {
+          card.dataset.status = newStatus;
+          // Replace the pill rather than edit it: a dismissed lead has none,
+          // and an emptied pill would still show its border
+          card.querySelector('.pill')?.remove();
+          const pillLabel = { new: 'New', watching: 'Watching' }[newStatus];
+          if (pillLabel) {
+            const pill = document.createElement('span');
+            pill.className = newStatus === 'new' ? 'pill pill-new' : 'pill pill-watch';
+            pill.textContent = pillLabel;
+            card.prepend(pill);
+          }
+          card.classList.toggle('is-dismissed', newStatus === 'dismissed');
+        }
+        // Toggle button state
+        const sibling = article.querySelector(action === 'watching' ? '.dismiss' : '.watch');
+        sibling?.classList.remove('active');
+        btn.classList.toggle('active', !isActive);
+        btn.textContent = isActive
+          ? (action === 'watching' ? 'Watch' : 'Dismiss')
+          : (action === 'watching' ? '✓ Watching' : '✕ Dismissed');
+      } catch (err) {
+        console.error('Lead action failed:', err);
+      }
+    });
+  });
+
+  // Website field: save on button click or Enter
+  document.querySelectorAll('.btn-save-url').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const section = btn.closest('.website-section');
+      const input = section.querySelector('.website-input');
+      const link = section.querySelector('.website-link');
+      const leadId = input.dataset.leadId;
+      const url = input.value.trim();
+
+      try {
+        const res = await fetch('/api/lead-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_id: leadId, url }),
+        });
+        if (!(await res.json()).ok) return;
+
+        if (url) {
+          link.href = url;
+          link.textContent = '↗ ' + url;
+          link.removeAttribute('hidden');
+        } else {
+          link.setAttribute('hidden', '');
+        }
+        btn.textContent = '✓ Saved';
+        setTimeout(() => { btn.textContent = 'Save'; }, 1800);
+      } catch (err) {
+        console.error('URL save failed:', err);
+        btn.textContent = 'Error';
+        setTimeout(() => { btn.textContent = 'Save'; }, 1800);
+      }
+    });
+  });
+
+  document.querySelectorAll('.website-input').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        input.closest('.website-section').querySelector('.btn-save-url').click();
+      }
+    });
+  });
+
+  // Notes: save on blur or Enter
+  document.querySelectorAll('.note-field').forEach(field => {
+    async function saveNote() {
+      const leadId = field.dataset.leadId;
+      const notes = field.value.trim();
+      try {
+        await fetch('/api/lead-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_id: leadId, notes }),
+        });
+      } catch (err) {
+        console.error('Note save failed:', err);
+      }
+    }
+    field.addEventListener('blur', saveNote);
+    field.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); saveNote(); field.blur(); }
+    });
+  });
+})();
+</script>
+
+{% if settings %}{% include "_settings.html" %}{% endif %}
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Your own data: personal, and created on your laptop as you use Job Radar.
+# Kept out of git so it can't be pushed by accident, and so `git pull` never touches it.
+.env
+profile.json
+feedback.json
+jobs.db
+jobs_local.db
+leads.db
+locations.json
+lead_places.json
+public/
+fetch.log
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Python and editors
+__pycache__/
+*.pyc
+.venv/
+.vscode/
+.idea/
+.DS_Store
+.wrangler/

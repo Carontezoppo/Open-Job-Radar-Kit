@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Radar — Sources</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FAF7F1" />
+<link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/sources.css">
+{% if settings %}<link rel="stylesheet" href="/static/settings.css">{% endif %}
+</head>
+<body>
+
+<header>
+  <div class="masthead">
+    <h1 class="masthead-title">Job <span style="color: var(--pick-soft); font-weight: 400;">|</span> <em>Radar</em></h1>
+    <div class="masthead-meta">
+      <strong>{{ sources|length }}</strong> sources<br>
+      {% if sources %}
+        {% if attention %}<span style="color: var(--bad);">{{ attention }} need attention</span>
+        {% else %}<span style="color: var(--good);">All returning jobs</span>{% endif %}<br>
+        <span>Last run {{ last_run_at[:10] }}, {{ last_run_at[11:16] }} UTC</span>
+      {% endif %}
+    </div>
+  </div>
+  {# Three columns, as on Roles and Leads; no search here, so the middle stays empty #}
+  <div class="dateline">
+    <div class="nav-group">
+      <a href="/" class="nav-tab">Roles</a>
+      <span>·</span>
+      <a href="/leads" class="nav-tab">Leads</a>
+      <span>·</span>
+      <a href="/sources" class="nav-tab active">Sources</a>
+    </div>
+    <div class="nav-group nav-group-end">
+      {% if settings %}<button class="nav-tab settings-open" type="button" aria-haspopup="dialog" aria-controls="settings-panel">Profile</button>{% endif %}
+    </div>
+  </div>
+</header>
+
+<main class="sources">
+{% if sources %}
+  <table class="source-table">
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Status</th>
+        <th class="num">Jobs</th>
+        <th>Last returned jobs</th>
+        <th>Newest posting</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for s in sources %}
+      {% set d = s.days_since_ok %}
+      <tr>
+        <td>
+          <span class="source-name">{{ s.source_label }}</span>
+          <span class="source-type">{{ s.source }}</span>
+        </td>
+        <td>
+          <span class="pill pill-{{ s.status }}">{{ {'ok': 'OK', 'empty': 'Empty', 'error': 'Error'}[s.status] }}</span>
+          {% if s.error %}<span class="source-error">{{ s.error }}</span>{% endif %}
+        </td>
+        <td class="num" data-label="Jobs">{{ s.job_count }}</td>
+        <td data-label="Last returned jobs" class="{% if d is none or d >= 3 %}is-late{% endif %}">
+          {% if s.status == 'ok' %}This run
+          {% elif d is none %}Never
+          {% elif d == 0 %}Today
+          {% elif d == 1 %}Yesterday
+          {% else %}{{ d }} days ago{% endif %}
+        </td>
+        <td data-label="Newest posting" class="{% if s.newest_stale %}is-stale{% endif %}">
+          {{ s.newest_posting[:10] if s.newest_posting else '—' }}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="source-note">
+    <strong>Empty</strong> means the board answered with no jobs: often a company that isn't hiring, but a scraper that broke
+    looks the same, and a few scrapers report their own request errors this way. Worth a look once it lasts several days.
+    <strong>Error</strong> means the request failed, with the reason given. A newest posting over a month old is greyed out.
+  </p>
+{% else %}
+  <div class="empty">
+    <h2>No fetch recorded yet.</h2>
+    <p>Each source's result is recorded from the next fetch onwards.</p>
+  </div>
+{% endif %}
+</main>
+
+<footer>
+  Personal aggregator · Job Radar
+</footer>
+
+{% if settings %}{% include "_settings.html" %}{% endif %}
+</body>
+</html>

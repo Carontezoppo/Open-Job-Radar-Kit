@@ -1,0 +1,594 @@
+:root {
+  --paper: #fdfeff;
+  --paper-warm: #e3e9f3;
+  --ink: #0e1216;
+  --ink-soft: #24282d;
+  --ink-faint: #9c9689;
+  --rule: #e3dccd;
+  --pick: #0056e0;
+  --pick-soft: #3d73fb;
+  --good: #157023;
+  --bad: #b42318;
+  --weak: #b0a89a;
+  --select: #d8ecff;
+  --hover: rgba(232, 241, 255, 0.5);
+  --max: 100%;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 17px; }
+
+body {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.618;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ------- Masthead ------- */
+header {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 3rem 2rem 1.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.masthead-title {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-variation-settings: "opsz" 144, "SOFT" 30;
+  font-weight: 700;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.masthead-title em {
+  font-style: normal;
+  color: var(--pick);
+}
+
+.masthead-meta {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: right;
+  line-height: 1.6;
+}
+.masthead-meta strong { color: var(--ink); font-weight: 500; }
+
+.dateline {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 1.2rem;
+  /* Equal outer columns keep the search at the exact centre, whatever the
+     tabs and Profile take up */
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 24rem) 1fr;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.nav-group-end { grid-column: 3; justify-content: flex-end; }
+
+.nav-tab {
+  color: var(--ink-faint);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 1px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.nav-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+.nav-tab:hover:not(.active) { color: var(--ink-soft); }
+/* Separates page navigation from the page's own controls; the flex gap alone is too even */
+.nav-divider { margin: 0 0.75rem; }
+
+/* ------- Two-column layout ------- */
+.layout {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
+  align-items: start;
+}
+
+.list-pane {
+  border-right: 1px solid var(--rule);
+  min-height: 70vh;
+}
+
+.detail-pane {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 2.5rem 2rem 4rem;
+}
+
+/* ------- Detail visibility ------- */
+.detail { display: none; }
+.detail.is-active { display: block; }
+
+/* ------- Detail close (mobile) ------- */
+.detail-close {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.7rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 2px;
+  margin-bottom: 1.5rem;
+}
+
+/* ------- Empty state ------- */
+.empty {
+  padding: 6rem 2rem;
+  text-align: center;
+  color: var(--ink-soft);
+  grid-column: 1 / -1;
+}
+.empty h2 {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.6rem;
+  margin-bottom: 0.8rem;
+  color: var(--ink);
+}
+.empty code {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background: var(--paper-warm);
+  padding: 0.15rem 0.45rem;
+  border-radius: 2px;
+  font-size: 0.9em;
+}
+
+footer {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 2rem 2rem 4rem;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+  border-top: 1px solid var(--rule);
+}
+
+/* ------- Actions + buttons ------- */
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.72rem;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 2px;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn:hover { border-color: var(--ink); color: var(--ink); }
+
+/* Outlined accent: the one outward link on a detail (posting, company site) */
+.btn.apply,
+.btn.view-site {
+  margin-left: auto;
+  color: var(--pick);
+  border-color: var(--pick);
+}
+.btn.apply:hover,
+.btn.view-site:hover { background: var(--pick); color: var(--paper); }
+
+/* Filled ink: the primary action in a form */
+.btn-submit,
+.settings-save { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.btn-submit:hover,
+.settings-save:hover { background: var(--ink-soft); border-color: var(--ink-soft); color: var(--paper); }
+
+/* ------- List toolbar: filters, search, sort — above the list/detail split ------- */
+.list-toolbar {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  padding: 0.9rem 1.5rem 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  /* Same height on both pages, with or without Leads' "+ Add lead" button */
+  box-sizing: border-box;
+  min-height: 3.6rem;
+}
+
+/* Text-tab groups: Sort on Roles, the List / Map view on Leads */
+.sort-tabs,
+.view-tabs {
+  display: flex;
+  gap: 0.6rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.tabs-label { color: var(--ink-faint); }
+/* Right-hand controls: Sort on Roles; the view tabs, then "+ Add lead", on Leads */
+.sort-tabs,
+.view-tabs,
+.btn-add { margin-left: auto; }
+.view-tabs ~ .btn-add { margin-left: 0; }
+
+/* Filters are chips, so they read as a different kind of control from sort.
+   Same chips as the profile panel, set smaller to fit the header */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.filter-chips .chip {
+  min-height: 0;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.75rem;
+}
+/* Sets an independent toggle (Remote) apart from the one-of-many chips */
+.chip-divider {
+  align-self: stretch;
+  width: 1px;
+  margin: 0.15rem 0.25rem;
+  background: var(--rule);
+}
+
+/* ------- Search: in the nav row, between the page tabs and Profile ------- */
+/* A rounded box, outlined like the chips: an underline alone got lost */
+.list-search {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+  background: var(--paper);
+  color: var(--ink-faint);
+}
+.list-search:focus-within { border-color: var(--ink-soft); color: var(--ink-soft); }
+.list-search svg { flex-shrink: 0; }
+/* The nav row is mono and uppercase; what you type shouldn't be */
+.list-search .form-input {
+  border-bottom: none;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.85rem;
+  text-transform: none;
+  letter-spacing: normal;
+  min-width: 0;
+}
+
+.list-empty {
+  padding: 2rem 1.5rem 2rem 1.25rem;
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+}
+
+/* "Also matching your search: 2 under Skip" — results the active chip hides */
+.search-more {
+  padding: 0.8rem 1.5rem 0.8rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-faint);
+}
+.search-more button {
+  background: none;
+  border: none;
+  border-bottom: 1px solid currentColor;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--pick);
+  cursor: pointer;
+}
+
+/* ------- Chips (list filters, profile panel) ------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  text-align: left;
+}
+.chip:focus-visible { outline: 2px solid var(--pick); outline-offset: 2px; }
+
+/* On/off choices: filled with the accent when on — choosing is selection */
+.chip-toggle { cursor: pointer; transition: all 0.15s; }
+.chip-toggle:hover { border-color: var(--ink-soft); }
+.chip-toggle[aria-pressed="true"] {
+  background: var(--pick);
+  border-color: var(--pick);
+  color: var(--paper);
+}
+
+/* ------- Text tabs (sort, view) ------- */
+.sort-btn,
+.view-btn {
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
+.sort-btn:hover,
+.view-btn:hover { color: var(--ink-soft); }
+.sort-btn.active,
+.view-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* ------- List cards (Roles and Leads share one shell) ------- */
+/* Title line first, so it sits level with the score on Roles; meta line last */
+.card-content { display: block; }
+.list-card,
+.lead-card {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-left: 3px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  transition: background 0.12s ease;
+  position: relative;
+}
+.list-card:hover,
+.lead-card:hover { background: var(--hover); }
+.list-card[data-selected="true"],
+.lead-card[data-selected="true"] {
+  background: var(--select);
+  border-left-color: var(--pick);
+}
+
+.card-meta {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-soft);
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  overflow-wrap: break-word;
+}
+
+/* Title line: job title on Roles, company name on Leads */
+.card-title,
+.card-name {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-variation-settings: "opsz" 36;
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}
+
+/* Italic second line: company on Roles, funding stage on Leads */
+.card-company,
+.card-stage {
+  font-family: "Fraunces", serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+/* ------- Detail header (Roles and Leads) ------- */
+.detail-meta {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-soft);
+  margin-bottom: 0.7rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.card-meta .sep,
+.detail-meta .sep { color: var(--ink-faint); }
+.card-meta .source,
+.card-meta .vc-label,
+.detail-meta .source,
+.detail-meta .vc-label { color: var(--pick); }
+
+.detail-title,
+.detail-name {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-variation-settings: "opsz" 60;
+  font-weight: 600;
+  font-size: clamp(1.6rem, 2.5vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.05em;
+  margin-bottom: 0.4rem;
+}
+
+.detail-company,
+.detail-location {
+  font-family: "Fraunces", serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.15rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.8rem;
+}
+
+/* ------- Status pills ------- */
+.pill {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 100px;
+  line-height: 1.4;
+}
+.list-card .pill,
+.lead-card .pill {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+}
+.pill-new { color: var(--good); }
+.pill-applied,
+.pill-watch { color: var(--ink-soft); }
+.pill-promoted { color: var(--pick); }
+.pill-closed { color: var(--weak); }
+
+/* ------- Small field labels ------- */
+.form-label,
+.website-label {
+  display: block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-faint);
+  margin-bottom: 0.3rem;
+}
+
+/* ------- Notes ------- */
+.note-wrap {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+/* ------- Underlined inputs (notes, lead form, website, profile panel) ------- */
+.note-field,
+.form-input,
+.form-select,
+.website-input,
+.settings-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.3rem 0;
+  outline: none;
+}
+.note-field::placeholder,
+.form-input::placeholder,
+.website-input::placeholder,
+.settings-input::placeholder { color: var(--ink-faint); }
+.note-field:focus,
+.form-input:focus,
+.form-select:focus,
+.website-input:focus,
+.settings-input:focus { border-bottom-color: var(--ink-soft); }
+
+/* Notes sit inside the action row, so they're set small */
+.note-field { font-size: 0.72rem; }
+
+/* ------- Mobile: stacked + slide-in detail ------- */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .list-pane { border-right: none; }
+  .detail-pane {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--paper);
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    z-index: 100;
+    padding: 1.5rem;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.04);
+  }
+  .detail-pane.is-open { transform: translateX(0); }
+  .detail-close { display: inline-block; }
+  body.modal-open { overflow: hidden; }
+}
+
+@media (max-width: 540px) {
+  header { padding: 2rem 1.25rem 1rem; }
+  .detail-pane { padding: 1.25rem; }
+  /* On a phone: tabs and Profile share the first line, search gets the second */
+  .dateline { grid-template-columns: 1fr auto; }
+  .nav-group-end { grid-column: 2; grid-row: 1; }
+  .dateline .list-search { grid-column: 1 / -1; grid-row: 2; margin-top: 0.4rem; }
+  /* No room for the scan date beside the tabs */
+  .last-scan { display: none; }
+  /* Wrapped controls start at the left edge; right-aligned they look stranded */
+  .sort-tabs,
+  .view-tabs,
+  .btn-add { margin-left: 0; }
+  /* The chips wrap here, which would strand the divider at a line start */
+  /* .chip-divider { display: none; } */
+  .filter-chips .chip {margin: 0.2rem 0;}
+  .sort-tabs { margin: 0.2rem 0; }
+}
+
