@@ -16,6 +16,10 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+/* The browser hides [hidden] with a weak default rule that any class setting
+   display overrides, so hidden elements would quietly show (as Leads' empty
+   place chip did). !important makes the attribute always win. */
+[hidden] { display: none !important; }
 html { font-size: 17px; }
 
 body {

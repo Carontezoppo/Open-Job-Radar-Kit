@@ -83,7 +83,6 @@
   letter-spacing: 0.01em;
 }
 .website-link:hover { text-decoration: underline; }
-.website-link[hidden] { display: none; }
 /* Read-only link sections (Careers) sit directly under their label */
 .website-label + .website-link { margin-top: 0; }
 
@@ -125,6 +124,9 @@
   height: 52vh;
   min-height: 320px;
   background: var(--paper);
+  /* Leaflet's panes and controls carry z-indexes up to 1000; keep them
+     inside the map so the profile panel and overlays stay on top */
+  isolation: isolate;
 }
 .map-note {
   padding: 0.6rem 1.5rem 0.6rem 1.25rem;
