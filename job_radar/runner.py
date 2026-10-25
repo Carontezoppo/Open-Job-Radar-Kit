@@ -44,7 +44,9 @@ SCRAPER_TYPES = {
 SourceRun = tuple[str, str, str, int, "str | None"]  # (source, label, status, job_count, error)
 
 
-async def fetch_all(sources: list[dict[str, Any]]) -> tuple[list[Job], list[SourceRun]]:
+async def fetch_all(
+    sources: list[dict[str, Any]], disabled: set[tuple[str, str]] = frozenset()
+) -> tuple[list[Job], list[SourceRun]]:
     """Fan out across all configured sources concurrently and gather results.
 
     Also returns each scraper's outcome — status "ok" (returned jobs), "empty"
@@ -53,8 +55,12 @@ async def fetch_all(sources: list[dict[str, Any]]) -> tuple[list[Job], list[Sour
     broke), says nothing about whether its jobs are still listed. Some
     scrapers catch their own request errors and return nothing, so they show
     as "empty" rather than "error".
+
+    Sources switched off on the Sources page (`disabled`, as (source, label)
+    pairs) are skipped and get no outcome, so their last one stays on record.
     """
     tasks = []
+    skipped = 0
     for s in sources:
         s_type = s["type"]
         cls = SCRAPER_TYPES.get(s_type)
@@ -63,7 +69,13 @@ async def fetch_all(sources: list[dict[str, Any]]) -> tuple[list[Job], list[Sour
             continue
         kwargs = {k: v for k, v in s.items() if k != "type"}
         scraper = cls(**kwargs)
+        # Checked on the scraper, not the config entry: it fills in a missing label
+        if (scraper.source_name, scraper.label) in disabled:
+            skipped += 1
+            continue
         tasks.append(_fetch_one(scraper))
+    if skipped:
+        logger.info("Skipping %d switched-off source(s)", skipped)
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 

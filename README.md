@@ -9,12 +9,12 @@ It started as one designer's job search and a way to learn Python, so every modu
 - **Roles**: jobs from the last 30 days, scored 0–100 against your profile with a short reasoning and green and red flags. Filter by verdict (Strong, Possible, Weak), New, Remote or Applied; search by title or company. Postings that are taken down drop off automatically. Near-misses sit under Skip, and voting one Interested moves it into the list.
 - **Feedback**: vote ↑ or ↓ with a short note, and recent votes are shown to Claude on every later score, so it calibrates to you.
 - **Leads**: companies newly added to VC portfolios, with HQ city, sector, website and careers page, on a list or a map, plus any open roles they have.
-- **Sources**: a health check of every job board after each fetch, so a board that moves or breaks doesn't go quietly missing.
+- **Sources**: a health check of every job board after each fetch, so a board that moves or breaks doesn't go quietly missing. Switch off any board you don't want, and its roles go with it.
 - **Profile**: everything about what you want, edited in the dashboard: summary, roles, countries, sectors, flags and keywords.
 
 ## Who it's tuned for
 
-Out of the box, the sources are aimed at **senior design roles (product, UX and service design, up to design leadership) at European startups**: the job boards of Index Ventures, Northzone, Atomico, Seedcamp, Phoenix Court, Notion Capital and Balderton, plus around 60 companies' own boards (Greenhouse, Lever, Ashby). The profile decides how jobs are scored, but the sources decide what can be found at all. For a different field or region, edit the `SOURCES` list in `config.py`.
+Out of the box, the sources are aimed at **senior design roles (product, UX and service design, up to design leadership) at European startups**: the job boards of Index Ventures, Northzone, Atomico, Seedcamp, Phoenix Court, Notion Capital and Balderton, plus around 60 companies' own boards (Greenhouse, Lever, Ashby). The profile decides how jobs are scored, but the sources decide what can be found at all. To drop a board, switch it off on the Sources page. For a different field or region, edit the `SOURCES` list in `config.py`.
 
 ## What you need
 
@@ -63,7 +63,7 @@ Leads are found by a separate command, worth running every week or two:
 git pull
 ```
 
-Then restart the dashboard. Your profile, votes and databases aren't in git, so updates never touch them.
+The dashboard restarts by itself when the code changes. Your profile, votes and databases aren't in git, so updates never touch them.
 
 ## How it works
 

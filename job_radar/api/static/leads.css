@@ -72,6 +72,9 @@
   font-size: 0.72rem;
 }
 .btn-save-url { flex-shrink: 0; }
+/* Notes: one field, so Save sits beside it, as on the Website row */
+.note-wrap { display: flex; gap: 0.5rem; align-items: center; }
+.btn-save-note { flex-shrink: 0; }
 .website-link {
   display: block;
   margin-top: 0.5rem;

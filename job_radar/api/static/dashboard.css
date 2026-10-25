@@ -84,6 +84,7 @@
 }
 .note-field.positive::placeholder { color: var(--good); opacity: 0.7; }
 .note-field.negative::placeholder { color: var(--bad); opacity: 0.7; }
+.btn-save-note { align-self: flex-start; }
 
 /* ------- Button variants ------- */
 .btn.active.up { background: var(--good); color: var(--paper); border-color: var(--good); }

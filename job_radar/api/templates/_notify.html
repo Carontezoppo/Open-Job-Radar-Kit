@@ -1,0 +1,57 @@
+{# Shared by every page that saves. postJSON treats any failure as an error:
+   fetch() itself only throws when the server can't be reached, so a 404 or
+   500 would otherwise pass for a save. notify() says what went wrong.
+   showSaved() keeps each Save button telling the truth about its fields. #}
+<div class="toast" role="status" aria-live="polite" hidden></div>
+<script>
+  (() => {
+    const toast = document.querySelector('.toast');
+    let timer;
+    window.notify = (text) => {
+      toast.textContent = text;
+      toast.hidden = false;
+      clearTimeout(timer);
+      timer = setTimeout(() => { toast.hidden = true; }, 8000);
+    };
+    toast.addEventListener('click', () => { toast.hidden = true; });
+
+    // A Save button reads "✓ Saved" while its fields hold what's stored, and
+    // "Save" from the first edit until the next save, so it shows at a glance
+    // whether there's anything unsaved. Its fields are the inputs beside it.
+    window.showSaved = (btn, saved) => {
+      btn.classList.toggle('is-saved', saved);
+      btn.querySelector('.btn-label').textContent = saved ? '✓ Saved' : 'Save';
+    };
+    document.querySelectorAll('.btn-save').forEach(btn => {
+      const fields = btn.parentElement.querySelectorAll('input');
+      // Rendered values come from storage, so anything already there is saved
+      showSaved(btn, [...fields].some(f => f.value.trim()));
+      fields.forEach(f => f.addEventListener('input', () => showSaved(btn, false)));
+    });
+
+    // Resolves with the response body; rejects with an Error whose message
+    // finishes the sentence "Couldn't save …: "
+    window.postJSON = async (url, body, method = 'POST') => {
+      let res;
+      try {
+        res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } catch {
+        throw new Error('the dashboard server didn’t answer. Check that python run.py serve is still running.');
+      }
+      const data = await res.json().catch(() => ({}));
+      // A server started before the code changed doesn't know newer endpoints:
+      // a 404 without our own error message
+      if (res.status === 404 && !data.error) {
+        throw new Error('the dashboard server is running older code than this page. Restart it (python run.py serve) and try again.');
+      }
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error ? `${data.error}.` : `the server answered with error ${res.status}.`);
+      }
+      return data;
+    };
+  })();
+</script>

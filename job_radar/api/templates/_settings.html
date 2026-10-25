@@ -243,18 +243,13 @@
   panel.querySelector('.settings-save').addEventListener('click', async () => {
     say('Saving…');
     try {
-      const res = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profile),
-      });
-      const data = await res.json();
-      if (!data.ok) { say(data.error, true); return; }
+      await postJSON('/api/profile', profile, 'PUT');
       dirty = false;
       saved = true;
       say('Saved. Countries apply now; everything else from the next fetch.');
     } catch (err) {
-      say('Save failed — is the server still running?', true);
+      // In the panel's own status line, next to Save, rather than a notification
+      say(`Couldn’t save: ${err.message}`, true);
     }
   });
 

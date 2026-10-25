@@ -264,9 +264,24 @@ class Storage:
         with self._conn() as c:
             return {row["job_id"] for row in c.execute("SELECT job_id FROM scores")}
 
-    def record_source_runs(self, runs: list[tuple[str, str, str, int, str | None]], at: datetime) -> None:
-        """Store each source's outcome on this run: (source, label, status, job_count, error)."""
+    def record_source_runs(
+        self,
+        runs: list[tuple[str, str, str, int, str | None]],
+        at: datetime,
+        disabled: set[tuple[str, str]] = frozenset(),
+    ) -> None:
+        """Store each source's outcome on this run: (source, label, status, job_count, error).
+
+        Sources neither in this run nor switched off (`disabled`) have been
+        removed from the config, so their records go.
+        """
+        keep = {(s, label) for s, label, *_ in runs} | set(disabled)
         with self._conn() as c:
+            stored = c.execute("SELECT source, source_label FROM source_runs").fetchall()
+            c.executemany(
+                "DELETE FROM source_runs WHERE source = ? AND source_label = ?",
+                [tuple(r) for r in stored if tuple(r) not in keep],
+            )
             c.executemany(
                 "INSERT INTO source_runs (source, source_label, run_at, status, job_count, error)"
                 " VALUES (?, ?, ?, ?, ?, ?)"
@@ -277,22 +292,22 @@ class Storage:
             )
 
     def source_report(self) -> list[dict]:
-        """Every source in the latest run, with when it last returned jobs and its newest posting.
+        """Every source on record, with when it last returned jobs and its newest posting.
 
-        Sources missing from the latest run have been removed from the config,
-        so they're left out.
+        `in_latest` is false for sources the latest run skipped: switched off,
+        or switched back on since and waiting for the next fetch.
         """
         with self._conn() as c:
             rows = c.execute(
                 """
                 SELECT r.source, r.source_label, r.run_at, r.status, r.job_count, r.error,
+                       r.run_at = (SELECT MAX(run_at) FROM source_runs) AS in_latest,
                        f.last_success_at,
                        (SELECT MAX(COALESCE(j.posted_at, j.discovered_at)) FROM jobs j
                          WHERE j.source = r.source AND j.source_label = r.source_label) AS newest_posting
                 FROM source_runs r
                 LEFT JOIN source_fetches f
                   ON f.source = r.source AND f.source_label = r.source_label
-                WHERE r.run_at = (SELECT MAX(run_at) FROM source_runs)
                 """
             ).fetchall()
         return [dict(r) for r in rows]

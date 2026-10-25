@@ -62,6 +62,12 @@ class FetchIn(BaseModel):
     force_rescore: bool = False
 
 
+class SourceToggleIn(BaseModel):
+    source: str
+    label: str
+    enabled: bool
+
+
 class LeadActionIn(BaseModel):
     lead_id: str
     status: str | None = None  # 'watching' | 'dismissed' | 'promoted'
@@ -89,12 +95,15 @@ def create_app(
     locations_path: Path | None = None,
     lead_places_path: Path | None = None,
     local_fetch: bool = False,
+    disabled_sources_path: Path | None = None,
 ) -> FastAPI:
     """Factory so we can inject the db path from run.py.
 
     `profile_path` turns on the settings panel and the country filter. The
     static export leaves it out, so the live site is unaffected by both.
     `local_fetch` adds the Fetch button (see config.LOCAL_FETCH).
+    `disabled_sources_path` holds the sources switched off on the Sources
+    page; their roles are hidden, except under Applied.
     """
     app = FastAPI(title="Job Radar")
     storage = Storage(db_path)
@@ -103,6 +112,16 @@ def create_app(
     static_dir = HERE / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    @app.middleware("http")
+    async def revalidate_static(request: Request, call_next):
+        # Without this, browsers reuse a cached stylesheet for hours after it
+        # changes. no-cache still caches, but checks first: unchanged files
+        # come back as a cheap 304.
+        response = await call_next(request)
+        if request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
     icons_dir = HERE.parent.parent / "icons"
     if icons_dir.exists():
@@ -114,6 +133,13 @@ def create_app(
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
+    def read_disabled() -> set[tuple[str, str]]:
+        # Same file and shape as config.load_disabled_sources
+        if not disabled_sources_path or not disabled_sources_path.exists():
+            return set()
+        with open(disabled_sources_path, "r", encoding="utf-8") as f:
+            return {(d["source"], d["label"]) for d in json.load(f)}
+
     @app.get("/", response_class=HTMLResponse)
     async def dashboard(request: Request, export: bool = Query(False)) -> Any:
         allowed = geo.allowed_countries(read_profile()) if profile_path else None
@@ -122,6 +148,7 @@ def create_app(
         cache = geo.load_cache(locations_path) if allowed is not None and locations_path else {}
         cutoff = (datetime.now(timezone.utc) - timedelta(days=LIST_MAX_AGE_DAYS)).isoformat()
         feedback_map = fb_store.latest_by_job(feedback_path) if feedback_path else {}
+        disabled = read_disabled()
         rows = []
         for r in storage.top_scored(limit=-1, min_score=threshold):
             fb = feedback_map.get(r["id"]) or {}
@@ -136,6 +163,8 @@ def create_app(
                 r["archived"] = r["closed"] or not recent
             else:
                 if r["closed"] or not recent:
+                    continue
+                if (r["source"], r["source_label"]) in disabled:
                     continue
                 if r["verdict"] == "skip" and r["score"] < SKIP_MIN_SCORE:
                     continue
@@ -289,8 +318,17 @@ def create_app(
         """Audit of every source's latest fetch. Local only: the export renders "/" alone."""
         now = datetime.now(timezone.utc)
         stale_before = (now - timedelta(days=LIST_MAX_AGE_DAYS)).isoformat()
+        disabled = read_disabled()
         rows = storage.source_report()
         for r in rows:
+            # Off and waiting replace the last outcome on screen, which no
+            # longer says what the source is doing. The order still follows
+            # it, so switching a source off doesn't move it down the page.
+            r["outcome"] = r["status"]
+            if (r["source"], r["source_label"]) in disabled:
+                r["status"] = "off"
+            elif not r["in_latest"]:
+                r["status"] = "pending"
             ok_at = r["last_success_at"]
             r["days_since_ok"] = (now - datetime.fromisoformat(ok_at)).days if ok_at else None
             r["newest_stale"] = bool(r["newest_posting"]) and r["newest_posting"] < stale_before
@@ -298,7 +336,7 @@ def create_app(
         # anything leading each group, then the longest quiet
         status_order = {"error": 0, "empty": 1, "ok": 2}
         rows.sort(key=lambda r: (
-            status_order.get(r["status"], 3),
+            status_order.get(r["outcome"], 3),
             r["days_since_ok"] is not None,
             -(r["days_since_ok"] or 0),
             r["source_label"].lower(),
@@ -308,11 +346,28 @@ def create_app(
             "sources.html",
             {
                 "sources": rows,
-                "attention": sum(1 for r in rows if r["status"] != "ok"),
-                "last_run_at": rows[0]["run_at"] if rows else None,
+                "attention": sum(1 for r in rows if r["status"] in ("error", "empty")),
+                "off_count": sum(1 for r in rows if r["status"] == "off"),
+                "last_run_at": max(r["run_at"] for r in rows) if rows else None,
                 "settings": bool(profile_path),
             },
         )
+
+    @app.post("/api/source")
+    async def toggle_source(payload: SourceToggleIn) -> Any:
+        """Switch a source on or off: the fetch skips it and Roles hides its jobs."""
+        if not disabled_sources_path:
+            return JSONResponse({"ok": False, "error": "not available"}, status_code=404)
+        disabled = read_disabled()
+        key = (payload.source, payload.label)
+        if payload.enabled:
+            disabled.discard(key)
+        else:
+            disabled.add(key)
+        with open(disabled_sources_path, "w", encoding="utf-8") as f:
+            json.dump([{"source": s, "label": label} for s, label in sorted(disabled)], f, indent=2)
+            f.write("\n")
+        return {"ok": True}
 
     @app.post("/api/lead-action")
     async def lead_action(payload: LeadActionIn) -> Any:

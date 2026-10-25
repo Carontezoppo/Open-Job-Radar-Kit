@@ -37,6 +37,7 @@ Look at what's there with `ls -a` and `git remote -v` (the second may fail, whic
 | `lead_places.json` | Map coordinates for their leads' locations | Delete. Rebuilt by the first `detect` (step 8) |
 | `locations.json` | Cache of location → country lookups | Safe to keep. It's just a cache and saves a few lookups. Delete only if they'd rather |
 | `sources_extra.json` | Companies added as extra job sources | Ask them. Keeping it means more companies get searched |
+| `sources_disabled.json` | Sources the previous user switched off | Delete, so every source starts on. They can switch off what they don't want on the Sources page |
 | `public/` | A published dashboard | Delete |
 | `.venv/` | A Python environment. It records absolute paths from the previous laptop, so it breaks when moved | Delete. Step 2 creates a fresh one |
 | `.wrangler/` | Leftover local Cloudflare state | Delete |
@@ -100,7 +101,7 @@ The profile decides what gets scored and how. It matters more than anything else
    - `scored` is 0 and `skipped_prefilter` is high: the keywords or countries are too narrow. Look at the profile together.
    - "No ANTHROPIC_API_KEY" in the log: go back to step 3.
 4. Ask them to refresh the dashboard.
-5. Open the **Sources** tab together. It shows what each source did on that fetch: OK, Empty (the board had no jobs, which is often fine) or Error (with the reason, such as a 404). An Error that persists for several days means a company has moved its job board; offer to look into it, or to remove that source from `config.py`.
+5. Open the **Sources** tab together. It shows what each source did on that fetch: OK, Empty (the board had no jobs, which is often fine) or Error (with the reason, such as a 404). An Error that persists for several days means a company has moved its job board; offer to look into it. Any source they don't want, broken or simply not relevant, they can drop themselves with the **Fetch** switch on its row: switched off, it stops being fetched and its roles leave Roles; switched back on, it returns. No need to edit `config.py`.
 
 ## 6. Make the project theirs
 
@@ -157,13 +158,13 @@ Finish by telling them how to use it from now on:
 
 - Start the dashboard: `.venv/bin/python run.py serve`, then open http://localhost:8000.
 - New jobs arrive with the daily fetch (if set up in step 7). To fetch now, for example right after a profile change, click **Fetch jobs**. Once or twice a day is plenty; design roles appear slowly.
-- Voting ↑ or ↓ with a short note teaches the scorer. Recent votes are shown to Claude on every later score.
+- Voting ↑ or ↓ with a short note (Save, or Enter, keeps it) teaches the scorer. Recent votes are shown to Claude on every later score.
 - After a big profile change, tick **Re-score all** before clicking **Fetch jobs**. It re-scores every job, so it costs about as much as a first run.
 - **Roles** shows jobs posted in the last 30 days that the matcher didn't skip. Jobs whose posting has been taken down drop off a day after the source stops listing them. **Skip** holds the near-misses; voting ↑ Interested on one moves it into the main list.
 - **Mark as applied** on every application. The **Applied** chip keeps all of them in one place, even after the posting closes or ages out of the list.
 - **Leads** are companies newly added to VC portfolios, often before they post any jobs. Run `.venv/bin/python run.py detect` every week or two (it's not part of the daily fetch). The first run records each portfolio as it is now; later runs find the companies added since. It also places each company's city on the **Map** view (List / Map, in the Leads toolbar), and a lead's detail lists any open roles at that company.
 - **Sources** is worth a glance now and then, as in step 5.5.
-- **Updates:** in a clone of the shared repository, `git pull` brings in new features and fixes. Their profile, votes and data are untouched, since none of it is in git. Restart the dashboard afterwards.
+- **Updates:** in a clone of the shared repository, `git pull` brings in new features and fixes. Their profile, votes and data are untouched, since none of it is in git. A running dashboard restarts by itself when the code changes.
 
 ## Troubleshooting
 

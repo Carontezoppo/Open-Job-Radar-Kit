@@ -51,7 +51,8 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     all_sources = cfg.SOURCES + cfg.load_sources_extra()
     log.info("Fetching from %d source(s)...", len(all_sources))
     fetch_start = datetime.now(timezone.utc)
-    jobs, source_runs = asyncio.run(fetch_all(all_sources))
+    disabled = cfg.load_disabled_sources()
+    jobs, source_runs = asyncio.run(fetch_all(all_sources, disabled))
     log.info("Total jobs across all sources: %d", len(jobs))
 
     stats = process(
@@ -71,7 +72,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     storage.record_source_fetches(
         [(source, label) for source, label, status, _, _ in source_runs if status == "ok"], fetch_start
     )
-    storage.record_source_runs(source_runs, fetch_start)
+    storage.record_source_runs(source_runs, fetch_start, disabled)
     storage.compact()
     log.info("Done. %s", stats)
     return 0
@@ -89,7 +90,8 @@ def cmd_export(args: argparse.Namespace) -> int:
         log.error("jobs.db not found at %s — run 'python run.py fetch' first", cfg.DB_PATH)
         return 1
 
-    app = create_app(cfg.DB_PATH, threshold=0)
+    # Switched-off sources' roles are hidden on the live site too
+    app = create_app(cfg.DB_PATH, threshold=0, disabled_sources_path=cfg.SOURCES_DISABLED_PATH)
     client = TestClient(app)
     response = client.get("/?export=1")
 
@@ -156,12 +158,12 @@ def cmd_detect(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_serve(args: argparse.Namespace) -> int:
-    _setup_logging(args.verbose)
-    import uvicorn
+def local_app():
+    """The dashboard as `serve` runs it. A function rather than an app, so the
+    reloader can build a fresh one each time the code changes."""
     from job_radar.api.main import create_app
 
-    app = create_app(
+    return create_app(
         cfg.DB_PATH,
         threshold=0,
         feedback_path=cfg.FEEDBACK_PATH,
@@ -170,8 +172,26 @@ def cmd_serve(args: argparse.Namespace) -> int:
         locations_path=cfg.LOCATIONS_CACHE_PATH,
         lead_places_path=cfg.LEAD_PLACES_PATH,
         local_fetch=cfg.LOCAL_FETCH,
+        disabled_sources_path=cfg.SOURCES_DISABLED_PATH,
     )
-    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    _setup_logging(args.verbose)
+    import uvicorn
+
+    # Restarts by itself whenever a .py file changes, so a page never talks to
+    # a server still running older code (its saves fail with a 404).
+    # Templates and CSS are read fresh on every request anyway.
+    uvicorn.run(
+        "run:local_app",
+        factory=True,
+        host=args.host,
+        port=args.port,
+        log_level="info",
+        reload=True,
+        reload_dirs=[str(cfg.ROOT)],
+    )
     return 0
 
 

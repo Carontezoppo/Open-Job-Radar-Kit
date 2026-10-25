@@ -28,6 +28,8 @@ DB_PATH = ROOT / os.getenv("DB_PATH", "jobs.db")
 LEADS_DB_PATH = ROOT / os.getenv("LEADS_DB_PATH", "leads.db")
 FEEDBACK_PATH = ROOT / "feedback.json"
 SOURCES_EXTRA_PATH = ROOT / "sources_extra.json"
+# Sources switched off on the Sources page: not fetched, and their roles hidden
+SOURCES_DISABLED_PATH = ROOT / "sources_disabled.json"
 PROFILE_PATH = ROOT / "profile.json"
 # Shows a "Fetch jobs" button on the local dashboard. Only for copies that
 # fetch on this laptop: where CI owns jobs.db (the live setup), a local fetch
@@ -186,6 +188,18 @@ def load_sources_extra() -> list[dict[str, Any]]:
         return []
     with open(SOURCES_EXTRA_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_disabled_sources() -> set[tuple[str, str]]:
+    """Sources switched off on the Sources page, as (source, label) pairs.
+
+    The same pair identifies a source in source_runs and on every job, so the
+    switch matches exactly what the page shows. Empty if the file doesn't exist.
+    """
+    if not SOURCES_DISABLED_PATH.exists():
+        return set()
+    with open(SOURCES_DISABLED_PATH, "r", encoding="utf-8") as f:
+        return {(d["source"], d["label"]) for d in json.load(f)}
 
 
 def add_source_extra(source: dict[str, Any]) -> None:

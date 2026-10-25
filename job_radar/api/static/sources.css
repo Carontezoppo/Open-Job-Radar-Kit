@@ -8,10 +8,20 @@
 }
 
 /* ------- Table ------- */
+/* Fixed columns, all left-aligned: a row's contents change when its source
+   is switched (pill, error, job count), and auto widths would shift every
+   column on the page in response */
 .source-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
+.source-table .col-source { width: 24%; }
+.source-table .col-status { width: 30%; }
+.source-table .col-jobs { width: 8%; }
+.source-table .col-last { width: 15%; }
+.source-table .col-newest { width: 13%; }
+.source-table .col-fetch { width: 10%; }
 .source-table th {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.62rem;
@@ -23,6 +33,11 @@
   padding: 0 1rem 0.7rem 0;
   border-bottom: 1px solid var(--rule);
 }
+/* Inset at both ends, so the hover highlight doesn't cut text at its edge */
+.source-table th:first-child,
+.source-table td:first-child { padding-left: 0.75rem; }
+.source-table th:last-child,
+.source-table td:last-child { padding-right: 0.75rem; }
 .source-table td {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.72rem;
@@ -30,8 +45,10 @@
   padding: 0.9rem 1rem 0.9rem 0;
   border-bottom: 1px solid var(--rule);
   vertical-align: top;
+  transition: background 0.15s;
 }
-.source-table .num { text-align: right; padding-right: 2rem; }
+/* Rows span the page, so the hovered one is highlighted, as list cards are */
+.source-table tbody tr:hover td { background: var(--hover); }
 
 .source-name {
   display: block;
@@ -60,8 +77,44 @@
   color: var(--bad);
   overflow-wrap: anywhere;
 }
+.pill-pending { color: var(--ink-soft); }
+.pill-off { color: var(--ink-faint); }
 .source-table .is-late { color: var(--bad); }
 .source-table .is-stale { color: var(--weak); }
+
+/* ------- Switching a source off ------- */
+.source-table .toggle-cell { white-space: nowrap; }
+/* A setting, so a switch: blue when on, as chosen chips are; an empty track when off */
+.switch {
+  position: relative;
+  width: 2.2rem;
+  height: 1.25rem;
+  border: 1px solid var(--ink-faint);
+  border-radius: 100px;
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.15s, border-color 0.15s;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.2rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  transform: translateY(-50%);
+  transition: transform 0.15s, background 0.15s;
+}
+.switch[aria-checked="true"] { background: var(--pick); border-color: var(--pick); }
+.switch[aria-checked="true"]::after { background: var(--paper); transform: translate(0.95rem, -50%); }
+.switch:focus-visible { outline: 2px solid var(--pick); outline-offset: 2px; }
+.switch:disabled { cursor: progress; }
+/* A switched-off source recedes: its last outcome is history, not a problem */
+.source-table tr.is-off td:not(.toggle-cell),
+.source-table tr.is-off .source-name { color: var(--ink-faint); }
 
 .source-note {
   max-width: 70ch;
@@ -90,5 +143,8 @@
     font-size: 0.6rem;
     letter-spacing: 0.09em;
   }
-  .source-table .num { text-align: left; padding-right: 0; }
+  .source-table td:first-child,
+  .source-table td:last-child { padding-left: 0; padding-right: 0; }
+  .source-table .toggle-cell { margin-top: 0.6rem; }
+  .source-table .toggle-cell::before { vertical-align: middle; }
 }

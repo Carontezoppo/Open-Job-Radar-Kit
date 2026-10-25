@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% import "_icons.html" as icons %}
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -204,7 +205,7 @@
                    data-lead-id="{{ l.id }}"
                    autocomplete="off"
                    spellcheck="false">
-            <button class="btn btn-save-url" type="button">Save</button>
+            <button class="btn btn-save btn-save-url" type="button">{{ icons.save_icon() }}<span class="btn-label">Save</span></button>
           </div>
           <a class="website-link"
              href="{{ l.url or '#' }}"
@@ -245,6 +246,7 @@
                    value="{{ l.notes or '' }}"
                    data-lead-id="{{ l.id }}"
                    autocomplete="off">
+            <button class="btn btn-save btn-save-note" type="button">{{ icons.save_icon() }}<span class="btn-label">Save</span></button>
           </div>
         </div>
       </article>
@@ -480,14 +482,10 @@
         notes: document.getElementById('f-notes')?.value.trim() || '',
       };
       try {
-        const res = await fetch('/api/lead', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if ((await res.json()).ok) window.location.reload();
+        await postJSON('/api/lead', payload);
+        window.location.reload();
       } catch (err) {
-        console.error('Add lead failed:', err);
+        notify(`Couldn’t add ${name}: ${err.message} What you typed is still in the form.`);
       }
     });
   }
@@ -503,11 +501,7 @@
       const newStatus = isActive ? 'new' : action;
 
       try {
-        await fetch('/api/lead-action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lead_id: leadId, status: newStatus }),
-        });
+        await postJSON('/api/lead-action', { lead_id: leadId, status: newStatus });
         // Update the list card status badge and card class
         const card = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
         if (card) {
@@ -532,7 +526,7 @@
           ? (action === 'watching' ? 'Watch' : 'Dismiss')
           : (action === 'watching' ? '✓ Watching' : '✕ Dismissed');
       } catch (err) {
-        console.error('Lead action failed:', err);
+        notify(`Couldn’t ${isActive ? 'undo that' : (action === 'watching' ? 'watch this lead' : 'dismiss this lead')}: ${err.message}`);
       }
     });
   });
@@ -547,13 +541,7 @@
       const url = input.value.trim();
 
       try {
-        const res = await fetch('/api/lead-action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lead_id: leadId, url }),
-        });
-        if (!(await res.json()).ok) return;
-
+        await postJSON('/api/lead-action', { lead_id: leadId, url });
         if (url) {
           link.href = url;
           link.textContent = '↗ ' + url;
@@ -561,12 +549,9 @@
         } else {
           link.setAttribute('hidden', '');
         }
-        btn.textContent = '✓ Saved';
-        setTimeout(() => { btn.textContent = 'Save'; }, 1800);
+        showSaved(btn, true);
       } catch (err) {
-        console.error('URL save failed:', err);
-        btn.textContent = 'Error';
-        setTimeout(() => { btn.textContent = 'Save'; }, 1800);
+        notify(`Couldn’t save the website: ${err.message} It’s still in the field.`);
       }
     });
   });
@@ -580,29 +565,31 @@
     });
   });
 
-  // Notes: save on blur or Enter
-  document.querySelectorAll('.note-field').forEach(field => {
-    async function saveNote() {
-      const leadId = field.dataset.leadId;
-      const notes = field.value.trim();
+  // Notes: saved with Save or Enter, as on Roles. Not on blur: a save you
+  // didn't ask for is one you can't tell has failed.
+  document.querySelectorAll('.btn-save-note').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const field = btn.closest('.note-wrap').querySelector('.note-field');
       try {
-        await fetch('/api/lead-action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lead_id: leadId, notes }),
-        });
+        await postJSON('/api/lead-action', { lead_id: field.dataset.leadId, notes: field.value.trim() });
+        showSaved(btn, true);
       } catch (err) {
-        console.error('Note save failed:', err);
+        notify(`Couldn’t save your notes: ${err.message} They’re still in the field.`);
       }
-    }
-    field.addEventListener('blur', saveNote);
+    });
+  });
+  document.querySelectorAll('.note-field').forEach(field => {
     field.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); saveNote(); field.blur(); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        field.closest('.note-wrap').querySelector('.btn-save-note').click();
+      }
     });
   });
 })();
 </script>
 
+{% include "_notify.html" %}
 {% if settings %}{% include "_settings.html" %}{% endif %}
 </body>
 </html>

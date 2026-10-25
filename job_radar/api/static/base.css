@@ -224,6 +224,12 @@ footer {
 .btn.apply:hover,
 .btn.view-site:hover { background: var(--pick); color: var(--paper); }
 
+/* Save buttons (notes, website): icon on the left of the label */
+.btn-save { display: inline-flex; align-items: center; gap: 0.4rem; }
+.btn-save .icon { width: 1.15em; height: 1.15em; flex-shrink: 0; }
+/* While "✓ Saved" shows, the tick replaces the icon */
+.btn-save.is-saved .icon { display: none; }
+
 /* Filled ink: the primary action in a form */
 .btn-submit,
 .settings-save { background: var(--ink); border-color: var(--ink); color: var(--paper); }
@@ -554,6 +560,25 @@ footer {
 
 /* Notes sit inside the action row, so they're set small */
 .note-field { font-size: 0.72rem; }
+
+/* ------- Notification: why a save failed (_notify.html) ------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(34rem, calc(100% - 2rem));
+  padding: 0.85rem 1.1rem;
+  border-left: 3px solid var(--bad);
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  cursor: pointer;
+  z-index: 300;
+}
 
 /* ------- Mobile: stacked + slide-in detail ------- */
 @media (max-width: 900px) {

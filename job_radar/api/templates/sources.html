@@ -24,6 +24,7 @@
       {% if sources %}
         {% if attention %}<span style="color: var(--bad);">{{ attention }} need attention</span>
         {% else %}<span style="color: var(--good);">All returning jobs</span>{% endif %}<br>
+        {% if off_count %}<span>{{ off_count }} switched off</span><br>{% endif %}
         <span>Last run {{ last_run_at[:10] }}, {{ last_run_at[11:16] }} UTC</span>
       {% endif %}
     </div>
@@ -46,28 +47,34 @@
 <main class="sources">
 {% if sources %}
   <table class="source-table">
+    <colgroup>
+      <col class="col-source"><col class="col-status"><col class="col-jobs">
+      <col class="col-last"><col class="col-newest"><col class="col-fetch">
+    </colgroup>
     <thead>
       <tr>
         <th>Source</th>
         <th>Status</th>
-        <th class="num">Jobs</th>
+        <th>Jobs</th>
         <th>Last returned jobs</th>
         <th>Newest posting</th>
+        <th>Fetch</th>
       </tr>
     </thead>
     <tbody>
     {% for s in sources %}
       {% set d = s.days_since_ok %}
-      <tr>
+      <tr{% if s.status == 'off' %} class="is-off"{% endif %}>
         <td>
           <span class="source-name">{{ s.source_label }}</span>
           <span class="source-type">{{ s.source }}</span>
         </td>
         <td>
-          <span class="pill pill-{{ s.status }}">{{ {'ok': 'OK', 'empty': 'Empty', 'error': 'Error'}[s.status] }}</span>
-          {% if s.error %}<span class="source-error">{{ s.error }}</span>{% endif %}
+          <span class="pill pill-{{ s.status }}">{{ {'ok': 'OK', 'empty': 'Empty', 'error': 'Error', 'pending': 'Next fetch', 'off': 'Off'}[s.status] }}</span>
+          {# Shown again if a switch can't be saved and the row goes back as it was #}
+          {% if s.error and s.status in ('error', 'empty') %}<span class="source-error">{{ s.error }}</span>{% endif %}
         </td>
-        <td class="num" data-label="Jobs">{{ s.job_count }}</td>
+        <td class="jobs" data-label="Jobs">{{ s.job_count if s.status in ('ok', 'empty', 'error') else '—' }}</td>
         <td data-label="Last returned jobs" class="{% if d is none or d >= 3 %}is-late{% endif %}">
           {% if s.status == 'ok' %}This run
           {% elif d is none %}Never
@@ -78,6 +85,12 @@
         <td data-label="Newest posting" class="{% if s.newest_stale %}is-stale{% endif %}">
           {{ s.newest_posting[:10] if s.newest_posting else '—' }}
         </td>
+        <td class="toggle-cell" data-label="Fetch">
+          <button class="switch" type="button" role="switch"
+                  aria-checked="{{ 'false' if s.status == 'off' else 'true' }}"
+                  aria-label="Fetch {{ s.source_label }}"
+                  data-source="{{ s.source }}" data-label="{{ s.source_label }}"></button>
+        </td>
       </tr>
     {% endfor %}
     </tbody>
@@ -86,6 +99,10 @@
     <strong>Empty</strong> means the board answered with no jobs: often a company that isn't hiring, but a scraper that broke
     looks the same, and a few scrapers report their own request errors this way. Worth a look once it lasts several days.
     <strong>Error</strong> means the request failed, with the reason given. A newest posting over a month old is greyed out.
+  </p>
+  <p class="source-note">
+    <strong>Fetch</strong> switches a source off or on. Switched off, it isn't fetched any more and its roles leave Roles
+    at once (roles you applied to stay under Applied). Switched back on, it returns from the next fetch.
   </p>
 {% else %}
   <div class="empty">
@@ -98,6 +115,49 @@
 <footer>
   Personal aggregator · Job Radar
 </footer>
+
+{% include "_notify.html" %}
+
+<script>
+  // Switch a source off or on. The switch moves at once and goes back if the
+  // save fails, with a note saying why. The row changes in place rather than
+  // re-sorting, so it doesn't jump away from under the pointer.
+  function showState(row, on, pill) {
+    row.classList.toggle('is-off', !on);
+    row.querySelector('.switch').setAttribute('aria-checked', String(on));
+    row.querySelector('.pill').className = pill.className;
+    row.querySelector('.pill').textContent = pill.text;
+    const error = row.querySelector('.source-error');
+    if (error) error.hidden = !pill.showError;
+    // Off or waiting, the last run's count no longer applies, as after a reload
+    row.querySelector('.jobs').textContent = pill.jobs ?? '—';
+  }
+
+  document.querySelectorAll('.switch').forEach(sw => {
+    sw.addEventListener('click', async () => {
+      const row = sw.closest('tr');
+      const pill = row.querySelector('.pill');
+      const before = {
+        className: pill.className, text: pill.textContent, showError: true,
+        jobs: row.querySelector('.jobs').textContent,
+      };
+      const wasOn = sw.getAttribute('aria-checked') === 'true';
+      const on = !wasOn;
+      // Back on, it has no current outcome until the next fetch
+      showState(row, on, on
+        ? { className: 'pill pill-pending', text: 'Next fetch', showError: false }
+        : { className: 'pill pill-off', text: 'Off', showError: false });
+      sw.disabled = true;
+      try {
+        await postJSON('/api/source', { source: sw.dataset.source, label: sw.dataset.label, enabled: on });
+      } catch (err) {
+        showState(row, wasOn, before);
+        notify(`Couldn’t switch ${sw.dataset.label} ${on ? 'on' : 'off'}: ${err.message} It’s still ${wasOn ? 'on' : 'off'}.`);
+      }
+      sw.disabled = false;
+    });
+  });
+</script>
 
 {% if settings %}{% include "_settings.html" %}{% endif %}
 </body>

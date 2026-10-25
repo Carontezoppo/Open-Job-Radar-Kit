@@ -21,3 +21,6 @@ __pycache__/
 .idea/
 .DS_Store
 .wrangler/
+
+# Sources switched off on the Sources page: each person's own choice
+sources_disabled.json
