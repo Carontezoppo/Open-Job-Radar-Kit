@@ -84,6 +84,23 @@ The job boards are read through the same public endpoints their websites use. On
 - **`CLAUDE.local.md`** (created during setup, not in git) tells the assistant who you are and how you like things explained.
 - **`NOTES.md`** is the project's log of decisions and discoveries, including how the Getro and Consider APIs were worked out.
 
+## Contributing
+
+Take it, change it, make it yours, and if you build something others could use, please send it back. Ideas, bug reports and pull requests are all welcome.
+
+Good places to start:
+
+- **New sources.** A Workable scraper is the obvious gap, and every source is one class in `job_radar/sources/`. Boards for other fields or regions make the radar useful to more people.
+- **New VC portfolios for Leads**, one scraper each in `job_radar/leads/portfolio/`.
+- **Anything that annoyed you** while setting it up or using it.
+
+A few things keep it coherent:
+
+- **Keep it readable.** Plain Python and the standard library where reasonable, one job per module, a docstring saying why. `CLAUDE.md` has the conventions, and your AI assistant will read it too.
+- **For bigger changes, open an issue first**, so we can agree on the shape before you spend an evening on it.
+- **Say how you tested it** in the pull request. There's no test suite yet, so a sentence on what you ran is enough.
+- **No personal data in commits**: your profile, votes and databases are gitignored, so keep them that way.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
