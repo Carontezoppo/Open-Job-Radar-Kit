@@ -92,14 +92,36 @@ async def fetch_all(
     return all_jobs, runs
 
 
+# A board that times out, hangs up or answers 5xx usually works again
+# moments later (Consider's boards did, twice in a day), so it gets one more
+# try before it shows as Error on the Sources page.
+RETRY_DELAY_SECONDS = 5
+
+
 async def _fetch_one(scraper) -> tuple[Any, list[Job], str | None]:
-    try:
-        jobs = await scraper.fetch()
-        logger.info("[%s/%s] fetched %d jobs", scraper.source_name, scraper.label, len(jobs))
-        return scraper, jobs, None
-    except Exception as e:
-        logger.error("[%s/%s] fetch failed: %s", scraper.source_name, scraper.label, e)
-        return scraper, [], _describe_error(e)
+    for attempt in (1, 2):
+        try:
+            jobs = await scraper.fetch()
+            logger.info("[%s/%s] fetched %d jobs", scraper.source_name, scraper.label, len(jobs))
+            return scraper, jobs, None
+        except Exception as e:
+            if attempt == 1 and _is_transient(e):
+                logger.warning(
+                    "[%s/%s] %s, retrying in %ds",
+                    scraper.source_name, scraper.label, _describe_error(e), RETRY_DELAY_SECONDS,
+                )
+                await asyncio.sleep(RETRY_DELAY_SECONDS)
+                continue
+            logger.error("[%s/%s] fetch failed: %s", scraper.source_name, scraper.label, _describe_error(e))
+            return scraper, [], _describe_error(e)
+
+
+def _is_transient(e: Exception) -> bool:
+    """Failures worth one retry: the board is there but struggling. A 404 or
+    a parse error would fail the same way again, so those aren't retried."""
+    if isinstance(e, (httpx.TimeoutException, httpx.RemoteProtocolError, httpx.ConnectError)):
+        return True
+    return isinstance(e, httpx.HTTPStatusError) and e.response.status_code >= 500
 
 
 def _describe_error(e: Exception) -> str:

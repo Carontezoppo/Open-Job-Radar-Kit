@@ -330,7 +330,9 @@ def create_app(
             elif not r["in_latest"]:
                 r["status"] = "pending"
             ok_at = r["last_success_at"]
-            r["days_since_ok"] = (now - datetime.fromisoformat(ok_at)).days if ok_at else None
+            # Calendar days (UTC, like the run times on the page), not 24-hour
+            # periods: a success yesterday afternoon is "Yesterday", not "Today"
+            r["days_since_ok"] = (now.date() - datetime.fromisoformat(ok_at).date()).days if ok_at else None
             r["newest_stale"] = bool(r["newest_posting"]) and r["newest_posting"] < stale_before
         # Problems first — errors, then empty — with sources that never returned
         # anything leading each group, then the longest quiet
